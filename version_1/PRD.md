@@ -197,7 +197,7 @@ QueryService
 
 ---
 
-# 5.2 Document Service
+## 5.2 Document Service
 
 Responsible for document lifecycle.
 
@@ -219,7 +219,7 @@ IngestionService
 
 ---
 
-# 5.3 Ingestion Pipeline
+## 5.3 Ingestion Pipeline
 
 The ingestion pipeline converts raw information into searchable knowledge.
 
@@ -293,7 +293,7 @@ Stores embeddings and searchable metadata.
 
 ---
 
-# 5.4 Retrieval Layer
+## 5.4 Retrieval Layer
 
 Retrieval is deliberately separated from generation.
 
@@ -320,7 +320,7 @@ This allows us to evaluate retrieval independently.
 
 ---
 
-# 5.5 Query Analyzer
+## 5.5 Query Analyzer
 
 The query analyzer determines what kind of query the user submitted.
 
@@ -345,7 +345,7 @@ Not every query requires the same retrieval strategy.
 
 ---
 
-# 5.6 Dense Retriever
+## 5.6 Dense Retriever
 
 Uses embeddings to find semantically similar chunks.
 
@@ -364,7 +364,7 @@ class DenseRetriever(Protocol):
 
 ---
 
-# 5.7 Lexical Retriever
+## 5.7 Lexical Retriever
 
 Handles exact terminology and keyword-sensitive searches.
 
@@ -383,7 +383,7 @@ class LexicalRetriever(Protocol):
 
 ---
 
-# 5.8 Retrieval Fusion
+## 5.8 Retrieval Fusion
 
 Combines results from different retrievers.
 
@@ -404,7 +404,7 @@ The exact fusion algorithm will be an implementation decision that we evaluate r
 
 ---
 
-# 5.9 Reranker
+## 5.9 Reranker
 
 The reranker receives candidate chunks and scores their relevance against the query.
 
@@ -420,7 +420,7 @@ This reduces the amount of irrelevant context sent to the LLM.
 
 ---
 
-# 5.10 Context Builder
+## 5.10 Context Builder
 
 This component is extremely important.
 
@@ -454,7 +454,7 @@ The context builder should not contain LLM reasoning.
 
 ---
 
-# 5.11 Answer Generator
+## 5.11 Answer Generator
 
 Responsible for producing the final response from:
 
@@ -476,7 +476,7 @@ Metadata
 
 ---
 
-# 5.12 Intelligence Extraction
+## 5.12 Intelligence Extraction
 
 This is one of the defining components of PAIS.
 
@@ -515,7 +515,7 @@ Follow-up
 
 ---
 
-# 5.13 Task Service
+## 5.13 Task Service
 
 Owns task business logic.
 
@@ -532,7 +532,7 @@ It should NOT know how embeddings are generated.
 
 ---
 
-# 5.14 Decision Service
+## 5.14 Decision Service
 
 Owns decision lifecycle.
 
@@ -550,7 +550,7 @@ Status
 
 ---
 
-# 5.15 Commitment Service
+## 5.15 Commitment Service
 
 Owns commitments extracted from information.
 
@@ -571,7 +571,7 @@ Commitment
 
 ---
 
-# 5.16 Provenance Service
+## 5.16 Provenance Service
 
 Every important AI-generated object should have a source chain.
 
@@ -591,7 +591,7 @@ This should be treated as a first-class capability rather than scattered foreign
 
 ---
 
-# 5.17 Memory Layer
+## 5.17 Memory Layer
 
 V1 memory is intentionally simple.
 
@@ -1860,3 +1860,1247 @@ Dense    Lexical    │
              ▼
           Response
 ```
+
+---
+
+# 35. Database Architecture
+
+V1 uses:
+
+```text
+PostgreSQL
+    │
+    ├── Relational application state
+    │
+    ├── Full-text / lexical search
+    │
+    └── pgvector
+          └── Embeddings
+```
+
+The database has three conceptual layers:
+
+```text
+┌──────────────────────────────────────┐
+│          Source Knowledge            │
+│                                      │
+│  documents → chunks → embeddings     │
+└──────────────────┬───────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────┐
+│        Structured Intelligence        │
+│                                      │
+│ projects / people / decisions /      │
+│ commitments / tasks / risks           │
+└──────────────────┬───────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────┐
+│          System / Evaluation         │
+│                                      │
+│ jobs / evaluations / model metadata   │
+└──────────────────────────────────────┘
+```
+
+The database is the **source of truth** for structured application state.
+
+The vector store is an index, not the source of truth.
+
+---
+
+# 36. Entity Relationship Overview
+
+```text
+                         users
+                           │
+             ┌─────────────┼─────────────┐
+             │             │             │
+             ▼             ▼             ▼
+         projects        tasks      commitments
+             │             │             │
+             │             └──────┬──────┘
+             │                    │
+             │                    ▼
+             │               decisions
+             │
+             ▼
+        documents
+             │
+             ▼
+          chunks
+             │
+             ▼
+        embeddings
+             
+documents
+   │
+   ├──────────────► tasks
+   ├──────────────► commitments
+   ├──────────────► decisions
+   ├──────────────► risks
+   └──────────────► people
+
+All AI-generated entities retain
+document/chunk provenance.
+```
+
+---
+
+# 37. Core Tables
+
+V1 will contain these primary tables:
+
+```text
+users
+projects
+people
+documents
+document_chunks
+tasks
+commitments
+decisions
+risks
+task_sources
+commitment_sources
+decision_sources
+jobs
+model_runs
+```
+
+We will deliberately avoid creating tables for every conceivable concept.
+
+---
+
+# 38. `users`
+
+Even though V1 is effectively single-user, we should include a user identity in the schema.
+
+This costs almost nothing and prevents us from having to redesign every table later.
+
+```sql
+CREATE TABLE users (
+    id UUID PRIMARY KEY,
+    email VARCHAR(320) UNIQUE,
+    display_name VARCHAR(255),
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+### Why?
+
+Every user-owned object can eventually be scoped by:
+
+```text
+user_id
+```
+
+This gives us a clean path toward multi-user support without prematurely building multi-tenancy infrastructure.
+
+---
+
+# 39. `projects`
+
+Projects provide an important organizational dimension for retrieval and intelligence.
+
+```sql
+CREATE TABLE projects (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+Recommended statuses:
+
+```text
+active
+paused
+completed
+archived
+```
+
+---
+
+# 40. `people`
+
+People mentioned in documents can eventually become useful entities.
+
+```sql
+CREATE TABLE people (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(320),
+
+    metadata JSONB NOT NULL DEFAULT '{}',
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+We should **not** attempt sophisticated identity resolution in V1.
+
+For example:
+
+```text
+"Rahul"
+"Rahul Sharma"
+"Rahul S."
+```
+
+should not automatically be assumed to be the same person unless there is sufficient evidence.
+
+---
+
+# 41. `documents`
+
+This is the root of our knowledge ingestion system.
+
+```sql
+CREATE TABLE documents (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+    project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
+
+    title VARCHAR(500) NOT NULL,
+    source_type VARCHAR(50) NOT NULL,
+
+    mime_type VARCHAR(255),
+    file_name VARCHAR(500),
+
+    content_hash VARCHAR(128) NOT NULL,
+
+    processing_status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    processing_error TEXT,
+
+    metadata JSONB NOT NULL DEFAULT '{}',
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+### `source_type`
+
+Examples:
+
+```text
+pdf
+docx
+markdown
+text
+meeting_transcript
+note
+```
+
+### `processing_status`
+
+```text
+pending
+processing
+ready
+failed
+```
+
+---
+
+# 42. Document Deduplication
+
+The combination:
+
+```text
+user_id + content_hash
+```
+
+should be indexed.
+
+```sql
+CREATE UNIQUE INDEX uq_documents_user_content_hash
+ON documents(user_id, content_hash);
+```
+
+This prevents accidentally ingesting the exact same document multiple times.
+
+---
+
+# 43. `document_chunks`
+
+A document is split into retrieval units.
+
+```sql
+CREATE TABLE document_chunks (
+    id UUID PRIMARY KEY,
+
+    document_id UUID NOT NULL
+        REFERENCES documents(id)
+        ON DELETE CASCADE,
+
+    chunk_index INTEGER NOT NULL,
+
+    text TEXT NOT NULL,
+
+    token_count INTEGER,
+
+    metadata JSONB NOT NULL DEFAULT '{}',
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+Constraint:
+
+```sql
+CREATE UNIQUE INDEX uq_document_chunk_index
+ON document_chunks(document_id, chunk_index);
+```
+
+---
+
+# 44. Embeddings
+
+We will use pgvector.
+
+Assuming the chosen embedding model produces `1536`-dimensional vectors:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+Then:
+
+```sql
+ALTER TABLE document_chunks
+ADD COLUMN embedding vector(1536);
+```
+
+However, there is an important design issue here.
+
+**The vector dimension is model-dependent.**
+
+Therefore, we should not hard-code `1536` until we select the actual embedding model.
+
+The final migration will use the dimension of the selected V1 model.
+
+---
+
+# 45. Embedding Metadata
+
+We should store the embedding model used.
+
+```sql
+ALTER TABLE document_chunks
+ADD COLUMN embedding_model VARCHAR(255);
+```
+
+Why?
+
+Suppose later we change:
+
+```text
+Embedding Model A
+        ↓
+Embedding Model B
+```
+
+The vector spaces are not necessarily compatible.
+
+We need to know which model generated each vector.
+
+---
+
+# 46. Vector Index
+
+After selecting the embedding model, we can create an ANN index.
+
+For example:
+
+```sql
+CREATE INDEX idx_document_chunks_embedding
+ON document_chunks
+USING hnsw (embedding vector_cosine_ops);
+```
+
+We will benchmark the index configuration rather than blindly assume HNSW is optimal.
+
+---
+
+# 47. Lexical Search
+
+We should also support PostgreSQL full-text search.
+
+Rather than storing another duplicated text field, we can derive a search vector.
+
+Conceptually:
+
+```sql
+ALTER TABLE document_chunks
+ADD COLUMN search_vector tsvector;
+```
+
+Then index it:
+
+```sql
+CREATE INDEX idx_document_chunks_search_vector
+ON document_chunks
+USING GIN(search_vector);
+```
+
+The ingestion pipeline will maintain it.
+
+This gives us:
+
+```text
+Dense search
++
+Lexical search
+```
+
+inside the same database.
+
+---
+
+# 48. `tasks`
+
+Tasks represent actionable work.
+
+```sql
+CREATE TABLE tasks (
+    id UUID PRIMARY KEY,
+
+    user_id UUID NOT NULL
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    project_id UUID
+        REFERENCES projects(id)
+        ON DELETE SET NULL,
+
+    title VARCHAR(500) NOT NULL,
+    description TEXT,
+
+    status VARCHAR(50) NOT NULL DEFAULT 'open',
+    priority VARCHAR(50) NOT NULL DEFAULT 'medium',
+
+    due_at TIMESTAMPTZ,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    completed_at TIMESTAMPTZ
+);
+```
+
+Recommended status:
+
+```text
+open
+in_progress
+completed
+cancelled
+```
+
+Priority:
+
+```text
+low
+medium
+high
+```
+
+---
+
+# 49. Task Provenance
+
+A task can originate from:
+
+* a commitment
+* a document
+* a specific chunk
+* a user directly creating it
+
+Rather than stuffing all of this into unrelated columns, V1 should use a provenance table.
+
+```sql
+CREATE TABLE task_sources (
+    task_id UUID NOT NULL
+        REFERENCES tasks(id)
+        ON DELETE CASCADE,
+
+    document_id UUID
+        REFERENCES documents(id)
+        ON DELETE SET NULL,
+
+    chunk_id UUID
+        REFERENCES document_chunks(id)
+        ON DELETE SET NULL,
+
+    source_type VARCHAR(50) NOT NULL,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    PRIMARY KEY (task_id, document_id, chunk_id)
+);
+```
+
+`source_type` could be:
+
+```text
+direct
+commitment
+document
+ai_extraction
+```
+
+This gives us traceability without coupling the task table to one particular origin.
+
+---
+
+# 50. `commitments`
+
+A commitment represents something the user/person committed to doing.
+
+```sql
+CREATE TABLE commitments (
+    id UUID PRIMARY KEY,
+
+    user_id UUID NOT NULL
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    project_id UUID
+        REFERENCES projects(id)
+        ON DELETE SET NULL,
+
+    description TEXT NOT NULL,
+
+    owner_person_id UUID
+        REFERENCES people(id)
+        ON DELETE SET NULL,
+
+    deadline_at TIMESTAMPTZ,
+
+    status VARCHAR(50) NOT NULL DEFAULT 'open',
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    completed_at TIMESTAMPTZ
+);
+```
+
+Recommended status:
+
+```text
+open
+completed
+cancelled
+expired
+```
+
+---
+
+# 51. Commitment Provenance
+
+```sql
+CREATE TABLE commitment_sources (
+    commitment_id UUID NOT NULL
+        REFERENCES commitments(id)
+        ON DELETE CASCADE,
+
+    document_id UUID NOT NULL
+        REFERENCES documents(id)
+        ON DELETE CASCADE,
+
+    chunk_id UUID
+        REFERENCES document_chunks(id)
+        ON DELETE SET NULL,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    PRIMARY KEY (commitment_id, document_id, chunk_id)
+);
+```
+
+This lets us answer:
+
+> "Where did this commitment come from?"
+
+---
+
+# 52. `decisions`
+
+A decision is different from a task.
+
+Example:
+
+> "We decided to use PostgreSQL."
+
+That should become:
+
+```sql
+CREATE TABLE decisions (
+    id UUID PRIMARY KEY,
+
+    user_id UUID NOT NULL
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    project_id UUID
+        REFERENCES projects(id)
+        ON DELETE SET NULL,
+
+    title VARCHAR(500) NOT NULL,
+    description TEXT NOT NULL,
+
+    decision_date TIMESTAMPTZ,
+
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+Recommended statuses:
+
+```text
+active
+superseded
+reversed
+archived
+```
+
+---
+
+# 53. Decision Provenance
+
+```sql
+CREATE TABLE decision_sources (
+    decision_id UUID NOT NULL
+        REFERENCES decisions(id)
+        ON DELETE CASCADE,
+
+    document_id UUID NOT NULL
+        REFERENCES documents(id)
+        ON DELETE CASCADE,
+
+    chunk_id UUID
+        REFERENCES document_chunks(id)
+        ON DELETE SET NULL,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    PRIMARY KEY (decision_id, document_id, chunk_id)
+);
+```
+
+---
+
+# 54. Decision Alternatives
+
+This is optional for the first migration, but I recommend including it because it makes the decision model significantly more useful.
+
+```sql
+CREATE TABLE decision_alternatives (
+    id UUID PRIMARY KEY,
+
+    decision_id UUID NOT NULL
+        REFERENCES decisions(id)
+        ON DELETE CASCADE,
+
+    name VARCHAR(500) NOT NULL,
+    description TEXT,
+
+    selected BOOLEAN NOT NULL DEFAULT FALSE,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+Example:
+
+```text
+Decision:
+Use PostgreSQL
+
+Alternatives:
+├── PostgreSQL       selected = true
+├── MongoDB          selected = false
+└── MySQL            selected = false
+```
+
+We should **not** infer why an alternative was rejected unless the source explicitly provides that information.
+
+---
+
+# 55. `risks`
+
+Risks were included in the product requirements, so they need a minimal representation.
+
+```sql
+CREATE TABLE risks (
+    id UUID PRIMARY KEY,
+
+    user_id UUID NOT NULL
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    project_id UUID
+        REFERENCES projects(id)
+        ON DELETE SET NULL,
+
+    title VARCHAR(500) NOT NULL,
+    description TEXT,
+
+    status VARCHAR(50) NOT NULL DEFAULT 'open',
+    severity VARCHAR(50),
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+We should keep this intentionally simple.
+
+---
+
+# 56. Why We Don't Create an `entities` Table Yet
+
+It may be tempting to build:
+
+```text
+entities
+relationships
+entity_types
+entity_mentions
+```
+
+and create a full knowledge graph.
+
+**Don't.**
+
+That is a classic scope trap.
+
+V1 only needs explicit domain entities:
+
+```text
+Project
+Person
+Task
+Commitment
+Decision
+Risk
+Document
+Chunk
+```
+
+If later evaluation shows that a graph materially improves the product, we can introduce one.
+
+---
+
+# 57. `jobs`
+
+Because ingestion is asynchronous, we need persistent job state.
+
+```sql
+CREATE TABLE jobs (
+    id UUID PRIMARY KEY,
+
+    user_id UUID
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    job_type VARCHAR(100) NOT NULL,
+
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+
+    payload JSONB NOT NULL DEFAULT '{}',
+
+    error_message TEXT,
+
+    attempts INTEGER NOT NULL DEFAULT 0,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ
+);
+```
+
+Example:
+
+```text
+job_type = document.ingest
+```
+
+Status:
+
+```text
+pending
+running
+completed
+failed
+```
+
+---
+
+# 58. `model_runs`
+
+This table is important for AI observability and evaluation.
+
+Every significant model invocation can optionally be recorded.
+
+```sql
+CREATE TABLE model_runs (
+    id UUID PRIMARY KEY,
+
+    user_id UUID
+        REFERENCES users(id)
+        ON DELETE SET NULL,
+
+    job_id UUID
+        REFERENCES jobs(id)
+        ON DELETE SET NULL,
+
+    operation VARCHAR(100) NOT NULL,
+
+    provider VARCHAR(100) NOT NULL,
+    model VARCHAR(255) NOT NULL,
+
+    input_tokens INTEGER,
+    output_tokens INTEGER,
+
+    latency_ms INTEGER,
+
+    status VARCHAR(50) NOT NULL,
+
+    error_message TEXT,
+
+    metadata JSONB NOT NULL DEFAULT '{}',
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+Examples of `operation`:
+
+```text
+query_generation
+entity_extraction
+embedding
+reranking
+daily_intelligence
+```
+
+This will eventually allow us to answer:
+
+> Which model is costing us the most?
+
+> Which operation is slow?
+
+> How many tokens did this query consume?
+
+---
+
+# 59. Evaluation Tables
+
+We don't need a huge evaluation schema initially.
+
+A minimal design:
+
+```sql
+CREATE TABLE evaluation_runs (
+    id UUID PRIMARY KEY,
+
+    name VARCHAR(255) NOT NULL,
+
+    evaluation_type VARCHAR(100) NOT NULL,
+
+    model VARCHAR(255),
+
+    metrics JSONB NOT NULL DEFAULT '{}',
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+And:
+
+```sql
+CREATE TABLE evaluation_cases (
+    id UUID PRIMARY KEY,
+
+    evaluation_run_id UUID NOT NULL
+        REFERENCES evaluation_runs(id)
+        ON DELETE CASCADE,
+
+    input JSONB NOT NULL,
+    expected JSONB NOT NULL,
+    actual JSONB,
+
+    metrics JSONB NOT NULL DEFAULT '{}',
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+This keeps evaluation data separate from production business state.
+
+---
+
+# 60. Important Indexes
+
+The first migration should include indexes for common access patterns.
+
+```sql
+CREATE INDEX idx_documents_user
+ON documents(user_id);
+
+CREATE INDEX idx_documents_project
+ON documents(project_id);
+
+CREATE INDEX idx_documents_status
+ON documents(processing_status);
+
+CREATE INDEX idx_chunks_document
+ON document_chunks(document_id);
+
+CREATE INDEX idx_tasks_user_status
+ON tasks(user_id, status);
+
+CREATE INDEX idx_tasks_due_at
+ON tasks(due_at);
+
+CREATE INDEX idx_commitments_user_status
+ON commitments(user_id, status);
+
+CREATE INDEX idx_commitments_deadline
+ON commitments(deadline_at);
+
+CREATE INDEX idx_decisions_user_status
+ON decisions(user_id, status);
+
+CREATE INDEX idx_jobs_status
+ON jobs(status);
+
+CREATE INDEX idx_model_runs_operation
+ON model_runs(operation);
+```
+
+We should add indexes based on actual query patterns rather than indexing every column.
+
+---
+
+# 61. Important Constraints
+
+The database should enforce basic invariants.
+
+Examples:
+
+```sql
+CHECK (attempts >= 0)
+```
+
+and appropriate enum/check constraints for fields such as:
+
+```text
+task.status
+task.priority
+commitment.status
+decision.status
+document.processing_status
+job.status
+```
+
+We can implement these as PostgreSQL enums or constrained strings.
+
+For V1, I prefer **constrained strings/check constraints** over PostgreSQL enums because application-level evolution is easier.
+
+---
+
+# 62. Timestamps
+
+All timestamps should use:
+
+```sql
+TIMESTAMPTZ
+```
+
+not:
+
+```sql
+TIMESTAMP
+```
+
+The application should store timestamps in UTC and convert them to the user's local timezone at the presentation layer.
+
+This matters for:
+
+* deadlines
+* daily intelligence
+* recent changes
+* commitments
+* task scheduling
+
+---
+
+# 63. Soft Delete
+
+We should **not implement soft deletion everywhere in V1**.
+
+For source documents, deleting the document should normally cascade to its chunks.
+
+For structured entities, deletion semantics should be explicit.
+
+We don't need:
+
+```text
+deleted_at
+deleted_by
+deletion_reason
+```
+
+on every table until the product actually requires recovery/audit behavior.
+
+---
+
+# 64. JSONB Usage
+
+JSONB is useful, but it should not become an excuse to avoid proper relational modeling.
+
+Good:
+
+```text
+documents.metadata
+people.metadata
+model_runs.metadata
+evaluation.metrics
+```
+
+Bad:
+
+```text
+tasks.data = {
+    "title": "...",
+    "status": "...",
+    "due_date": "..."
+}
+```
+
+Core business fields should remain typed relational columns.
+
+---
+
+# 65. Full Schema Relationship Diagram
+
+```text
+                                      ┌──────────────┐
+                                      │    users     │
+                                      └──────┬───────┘
+                                             │
+             ┌───────────────────────────────┼────────────────────┐
+             │                               │                    │
+             ▼                               ▼                    ▼
+       ┌────────────┐                  ┌──────────┐        ┌─────────────┐
+       │  projects  │                  │  people  │        │    jobs     │
+       └─────┬──────┘                  └──────────┘        └──────┬──────┘
+             │                                                    │
+             │                                                    ▼
+             │                                             ┌─────────────┐
+             │                                             │ model_runs  │
+             │                                             └─────────────┘
+             │
+             ▼
+       ┌────────────┐
+       │ documents  │
+       └─────┬──────┘
+             │
+             ▼
+     ┌──────────────────┐
+     │ document_chunks  │
+     │                  │
+     │ text             │
+     │ embedding        │
+     │ search_vector    │
+     └────────┬─────────┘
+              │
+              │ provenance
+      ┌───────┼───────────────┐
+      │       │               │
+      ▼       ▼               ▼
+   tasks  commitments     decisions
+      │       │               │
+      │       │               ▼
+      │       │        decision_alternatives
+      │       │
+      │       ▼
+      │  commitment_sources
+      │
+      ▼
+   task_sources
+
+              projects
+                 │
+        ┌────────┼────────┐
+        ▼        ▼        ▼
+      tasks  commitments decisions
+                 │
+                 ▼
+              people
+```
+
+---
+
+# 66. Provenance Model
+
+The critical relationship is:
+
+```text
+                     DOCUMENT
+                         │
+                         ▼
+                       CHUNK
+                         │
+              ┌──────────┼──────────┐
+              │          │          │
+              ▼          ▼          ▼
+             TASK   COMMITMENT   DECISION
+```
+
+For example:
+
+```text
+Task #123
+   │
+   └── task_sources
+          │
+          ├── document_id = meeting-42
+          └── chunk_id = chunk-17
+```
+
+We can therefore answer:
+
+> "Why was Task #123 created?"
+
+with:
+
+```text
+Task #123
+   ↓
+Commitment #54
+   ↓
+Meeting transcript
+   ↓
+Chunk #17
+```
+
+That is one of the strongest features of the architecture.
+
+---
+
+# 67. Migration Strategy
+
+We should use Alembic.
+
+Migration sequence:
+
+```text
+001_initial_extensions
+       ↓
+002_users_projects
+       ↓
+003_documents_chunks
+       ↓
+004_vector_search
+       ↓
+005_tasks_commitments_decisions
+       ↓
+006_provenance
+       ↓
+007_jobs_model_runs
+       ↓
+008_evaluation
+```
+
+We don't necessarily need eight physical migration files on day one; this is the logical dependency order.
+
+---
+
+# 68. V1 Database Rules
+
+The database architecture follows six rules:
+
+### Rule 1
+
+**PostgreSQL is the source of truth.**
+
+### Rule 2
+
+**pgvector is an index, not a knowledge store.**
+
+### Rule 3
+
+**Every AI-generated actionable entity must have provenance.**
+
+### Rule 4
+
+**Structured facts belong in typed columns.**
+
+### Rule 5
+
+**JSONB is for genuinely flexible metadata, not core business state.**
+
+### Rule 6
+
+**The schema should represent today's product, not hypothetical V5 functionality.**
+
+---
+
+# 69. Recommended Initial Schema
+
+If we strip the schema down to the absolute V1 core, the dependency graph is:
+
+```text
+users
+  │
+  ├── projects
+  │
+  └── documents
+         │
+         └── document_chunks
+                │
+                └── embedding
+
+users
+  │
+  ├── tasks
+  ├── commitments
+  ├── decisions
+  └── people
+
+documents/chunks
+  │
+  ├── task_sources
+  ├── commitment_sources
+  └── decision_sources
+
+users
+  │
+  └── jobs
+         │
+         └── model_runs
+```
+
+That is enough to support the entire V1 architecture.
