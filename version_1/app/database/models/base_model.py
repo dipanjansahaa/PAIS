@@ -1,0 +1,1 @@
+"""Common database model conventions."""

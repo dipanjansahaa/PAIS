@@ -1,0 +1,8 @@
+[project]
+name = "pais"
+version = "0.1.0"
+description = "Personal Decision & Action Intelligence System"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
