@@ -1,1 +1,39 @@
-# Milestone 1 services: API + PostgreSQL/pgvector.
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: pais-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pais}
+      POSTGRES_USER: ${POSTGRES_USER:-pais}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pais}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pais_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pais} -d ${POSTGRES_DB:-pais}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+    container_name: pais-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://pais:pais@db:5432/pais}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-8000}:8000"
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+volumes:
+  pais_postgres_data:
