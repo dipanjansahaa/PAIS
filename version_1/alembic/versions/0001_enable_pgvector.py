@@ -11,6 +11,8 @@ from alembic import op
 
 revision: str = "0001"
 down_revision: str | None = None
+# revision: str = "9f2f90d2707a"
+# down_revision: str | None = "0001"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
