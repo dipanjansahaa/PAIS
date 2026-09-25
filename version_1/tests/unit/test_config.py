@@ -69,3 +69,12 @@ def test_settings_normalize_case_and_whitespace() -> None:
 def test_settings_reject_empty_app_name() -> None:
     with pytest.raises(ValidationError):
         Settings(app_name="   ")
+
+
+def test_embedding_settings() -> None:
+    settings = Settings()
+
+    assert settings.embedding_model == "BAAI/bge-small-en-v1.5"
+    assert settings.embedding_device == "cpu"
+    assert settings.embedding_batch_size == 32
+    assert settings.embedding_normalize is True

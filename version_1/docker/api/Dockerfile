@@ -6,11 +6,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY pyproject.toml README.md alembic.ini ./
+# Dependency definitions first: changes to app/tests won't invalidate this layer.
+COPY pyproject.toml README.md ./
+RUN pip install --upgrade pip && pip install ".[dev]"
+
+# Project files after dependency installation.
+COPY alembic.ini ./
 COPY app ./app
 COPY alembic ./alembic
-
-RUN pip install --upgrade pip && pip install .
+COPY tests ./tests
 
 RUN useradd --create-home --uid 10001 pais && \
     chown -R pais:pais /app
