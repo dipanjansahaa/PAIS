@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     embedding_batch_size: int = 32
     embedding_normalize: bool = True
 
+    reranker_model: str = "BAAI/bge-reranker-base"
+    reranker_device: str = "cpu"
+    reranker_batch_size: int = 16
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
