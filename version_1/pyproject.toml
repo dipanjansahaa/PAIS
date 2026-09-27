@@ -22,6 +22,7 @@ dependencies = [
     "pydantic-settings>=2.7,<3.0",
     "pgvector>=0.3,<1.0",
     "sentence-transformers>=5.0,<6.0",
+    "python-multipart>=0.0.20",
 ]
 
 [project.optional-dependencies]

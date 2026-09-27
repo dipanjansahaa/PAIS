@@ -3,6 +3,8 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
+from sqlalchemy import UniqueConstraint
+
 from sqlalchemy import ForeignKey, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -17,6 +19,14 @@ if TYPE_CHECKING:
 
 class Document(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "documents"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "content_hash",
+            name="uq_documents_user_content_hash",
+        ),
+    )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -53,7 +63,7 @@ class Document(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     content_hash: Mapped[str] = mapped_column(
         String(64),
         nullable=False,
-        unique=True,
+        # unique=True,
         index=True,
     )
 

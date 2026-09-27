@@ -4,6 +4,7 @@ import hashlib
 import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.database.models.document import Document
 from app.database.models.document_chunk import DocumentChunk
@@ -11,6 +12,7 @@ from app.ingestion.chunker import DocumentChunker
 from app.ingestion.normalizer import DocumentNormalizer
 from app.ingestion.parser import get_parser
 from app.ingestion.service import IngestionService
+from app.ingestion.exceptions import DuplicateDocumentError
 
 
 class DocumentIngestionService:
@@ -39,6 +41,20 @@ class DocumentIngestionService:
         project_id: uuid.UUID | None = None,
     ) -> Document:
         """Parse, normalize, chunk, embed, and persist a document."""
+
+        content_hash = hashlib.sha256(content).hexdigest()
+
+        existing_document = await session.scalar(
+            select(Document).where(
+                Document.user_id == user_id,
+                Document.content_hash == content_hash,
+            )
+        )
+
+        if existing_document is not None:
+            raise DuplicateDocumentError(
+                f"Document already exists: {existing_document.id}"
+            )
 
         if not title.strip():
             raise ValueError("Document title must not be empty.")

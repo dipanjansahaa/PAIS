@@ -13,6 +13,7 @@ from app.ingestion.chunker import DocumentChunker
 from app.ingestion.document_service import DocumentIngestionService
 from app.ingestion.normalizer import DocumentNormalizer
 from app.ingestion.service import IngestionService
+from app.ingestion.exceptions import DuplicateDocumentError
 
 
 class FakeEmbeddingProvider(EmbeddingProvider):
@@ -115,3 +116,148 @@ async def test_document_ingestion_pipeline(
         for chunk in chunks
         if chunk.embedding is not None
     )
+
+
+@pytest.mark.asyncio
+async def test_duplicate_document_is_rejected(
+    db_session: AsyncSession,
+) -> None:
+    user = User(
+        email=f"document-ingestion-{uuid.uuid4()}@example.com",
+        display_name="Document Ingestion Test User",
+    )
+
+    db_session.add(user)
+    await db_session.flush()
+
+    embedding_provider = FakeEmbeddingProvider()
+
+    ingestion_service = IngestionService(
+        embedding_provider=embedding_provider,
+    )
+
+    document_service = DocumentIngestionService(
+        ingestion_service=ingestion_service,
+        normalizer=DocumentNormalizer(),
+        chunker=DocumentChunker(),
+    )
+
+    content = b"# Project Notes\n\nThis is a project note."
+
+    first_document = await document_service.ingest(
+        db_session,
+        user_id=user.id,
+        title="Project Notes",
+        content=content,
+        mime_type="text/markdown",
+        source_type="markdown",
+    )
+
+    with pytest.raises(DuplicateDocumentError):
+        await document_service.ingest(
+            db_session,
+            user_id=user.id,
+            title="Project Notes Copy",
+            content=content,
+            mime_type="text/markdown",
+            source_type="markdown",
+        )
+
+    assert first_document.id is not None
+
+
+@pytest.mark.asyncio
+async def test_same_content_is_allowed_for_different_users(
+    db_session: AsyncSession,
+) -> None:
+    user_1 = User(
+        email=f"document-ingestion-{uuid.uuid4()}@example.com",
+        display_name="Document Ingestion Test User",
+    )
+
+    user_2 = User(
+        email=f"document-ingestion-{uuid.uuid4()}@example.com",
+        display_name="Document Ingestion Test User",
+    )
+
+    db_session.add_all([user_1, user_2])
+    await db_session.flush()
+
+    embedding_provider = FakeEmbeddingProvider()
+
+    ingestion_service = IngestionService(
+        embedding_provider=embedding_provider,
+    )
+
+    document_service = DocumentIngestionService(
+        ingestion_service=ingestion_service,
+        normalizer=DocumentNormalizer(),
+        chunker=DocumentChunker(),
+    )
+
+    content = b"# Shared Notes\n\nSame content."
+
+    document_1 = await document_service.ingest(
+        db_session,
+        user_id=user_1.id,
+        title="User 1 Notes",
+        content=content,
+        mime_type="text/markdown",
+        source_type="markdown",
+    )
+
+    document_2 = await document_service.ingest(
+        db_session,
+        user_id=user_2.id,
+        title="User 2 Notes",
+        content=content,
+        mime_type="text/markdown",
+        source_type="markdown",
+    )
+
+    assert document_1.id != document_2.id
+
+
+@pytest.mark.asyncio
+async def test_different_content_is_allowed_for_same_user(
+    db_session: AsyncSession,
+) -> None:
+    user = User(
+        email=f"document-ingestion-{uuid.uuid4()}@example.com",
+        display_name="Document Ingestion Test User",
+    )
+
+    db_session.add(user)
+    await db_session.flush()
+
+    embedding_provider = FakeEmbeddingProvider()
+
+    ingestion_service = IngestionService(
+        embedding_provider=embedding_provider,
+    )
+
+    document_service = DocumentIngestionService(
+        ingestion_service=ingestion_service,
+        normalizer=DocumentNormalizer(),
+        chunker=DocumentChunker(),
+    )
+
+    document_1 = await document_service.ingest(
+        db_session,
+        user_id=user.id,
+        title="Project Alpha",
+        content=b"# Project Alpha",
+        mime_type="text/markdown",
+        source_type="markdown",
+    )
+
+    document_2 = await document_service.ingest(
+        db_session,
+        user_id=user.id,
+        title="Project Beta",
+        content=b"# Project Beta",
+        mime_type="text/markdown",
+        source_type="markdown",
+    )
+
+    assert document_1.id != document_2.id
