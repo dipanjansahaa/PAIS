@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models.document import Document
@@ -10,11 +10,11 @@ from app.database.models.document_chunk import DocumentChunk
 from app.retrieval.models import RetrievalResult
 
 
-class VectorRetriever:
-    """Retrieve document chunks using vector similarity search."""
+class LexicalRetriever:
+    """Retrieve document chunks using PostgreSQL full-text search."""
 
-    def __init__(self, embedding_provider) -> None:
-        self.embedding_provider = embedding_provider
+    def __init__(self, language: str = "english") -> None:
+        self.language = language
 
     async def search(
         self,
@@ -31,19 +31,33 @@ class VectorRetriever:
         if top_k <= 0:
             raise ValueError("top_k must be greater than zero.")
 
-        query_embedding = await self.embedding_provider.embed_query(query)
-
-        distance = DocumentChunk.embedding.cosine_distance(
-            query_embedding
+        document_text = func.to_tsvector(
+            self.language,
+            DocumentChunk.content,
         )
+
+        query_text = func.websearch_to_tsquery(
+            self.language,
+            " OR ".join(query.split()),
+        )
+
+        rank = func.ts_rank_cd(
+            document_text,
+            query_text,
+        ).label("similarity")
 
         statement = (
             select(
                 DocumentChunk,
-                distance.label("distance"),
+                rank,
             )
-            .join(Document, Document.id == DocumentChunk.document_id)
-            .where(DocumentChunk.embedding.is_not(None))
+            .join(
+                Document,
+                Document.id == DocumentChunk.document_id,
+            )
+            .where(
+                document_text.op("@@")(query_text)
+            )
         )
 
         if project_id is not None:
@@ -63,7 +77,7 @@ class VectorRetriever:
 
         statement = (
             statement
-            .order_by(distance)
+            .order_by(rank.desc())
             .limit(top_k)
         )
 
@@ -74,8 +88,8 @@ class VectorRetriever:
                 chunk_id=chunk.id,
                 document_id=chunk.document_id,
                 content=chunk.content,
-                similarity=1.0 - float(distance_value),
+                similarity=float(similarity),
                 metadata=chunk.chunk_metadata,
             )
-            for chunk, distance_value in result
+            for chunk, similarity in result
         ]

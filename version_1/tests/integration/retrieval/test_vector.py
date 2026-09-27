@@ -5,6 +5,7 @@ from app.database.models.document_chunk import DocumentChunk
 from app.database.models.user import User
 from app.embeddings.base import EmbeddingProvider
 from app.retrieval.vector import VectorRetriever
+from app.database.models.project import Project
 
 
 class FakeEmbeddingProvider(EmbeddingProvider):
@@ -182,3 +183,204 @@ async def test_vector_retriever_respects_top_k_one(
     assert len(results) == 1
     assert results[0].chunk_id == relevant_chunk.id
     assert results[0].similarity == pytest.approx(1.0)
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_vector_retriever_filters_by_project_id(
+    db_session,
+    retriever,
+):
+    user = User(
+        email=None,
+        display_name="Vector Project Filter User",
+    )
+
+    db_session.add(user)
+    await db_session.flush()
+
+    project_a = Project(
+        user_id=user.id,
+        name="Project A",
+    )
+
+    project_b = Project(
+        user_id=user.id,
+        name="Project B",
+    )
+
+    db_session.add_all([project_a, project_b])
+    await db_session.flush()
+
+    document_a = Document(
+        user_id=user.id,
+        project_id=project_a.id,
+        title="Project A Document",
+        source_type="text",
+        content_hash="vector-project-a",
+        raw_text="PostgreSQL Project A",
+    )
+
+    document_b = Document(
+        user_id=user.id,
+        project_id=project_b.id,
+        title="Project B Document",
+        source_type="text",
+        content_hash="vector-project-b",
+        raw_text="PostgreSQL Project B",
+    )
+
+    db_session.add_all([document_a, document_b])
+    await db_session.flush()
+
+    chunk_a = DocumentChunk(
+        document_id=document_a.id,
+        chunk_index=0,
+        content="PostgreSQL is used by Project A.",
+        embedding=[0.1] * 384,
+    )
+
+    chunk_b = DocumentChunk(
+        document_id=document_b.id,
+        chunk_index=0,
+        content="PostgreSQL is used by Project B.",
+        embedding=[0.1] * 384,
+    )
+
+    db_session.add_all([chunk_a, chunk_b])
+    await db_session.flush()
+
+    results = await retriever.search(
+        session=db_session,
+        query="PostgreSQL",
+        top_k=5,
+        project_id=project_a.id,
+    )
+
+    assert len(results) == 1
+    assert results[0].chunk_id == chunk_a.id
+    assert results[0].document_id == document_a.id
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_vector_retriever_filters_by_document_id(
+    db_session,
+    retriever,
+):
+    user = User(
+        email=None,
+        display_name="Vector Document Filter User",
+    )
+
+    db_session.add(user)
+    await db_session.flush()
+
+    document_a = Document(
+        user_id=user.id,
+        title="Document A",
+        source_type="text",
+        content_hash="vector-document-a",
+        raw_text="PostgreSQL Document A",
+    )
+
+    document_b = Document(
+        user_id=user.id,
+        title="Document B",
+        source_type="text",
+        content_hash="vector-document-b",
+        raw_text="PostgreSQL Document B",
+    )
+
+    db_session.add_all([document_a, document_b])
+    await db_session.flush()
+
+    chunk_a = DocumentChunk(
+        document_id=document_a.id,
+        chunk_index=0,
+        content="PostgreSQL is used in Document A.",
+        embedding=[0.1] * 384,
+    )
+
+    chunk_b = DocumentChunk(
+        document_id=document_b.id,
+        chunk_index=0,
+        content="PostgreSQL is used in Document B.",
+        embedding=[0.1] * 384,
+    )
+
+    db_session.add_all([chunk_a, chunk_b])
+    await db_session.flush()
+
+    results = await retriever.search(
+        session=db_session,
+        query="PostgreSQL",
+        top_k=5,
+        document_id=document_a.id,
+    )
+
+    assert len(results) == 1
+    assert results[0].chunk_id == chunk_a.id
+    assert results[0].document_id == document_a.id
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_vector_retriever_filters_by_source_type(
+    db_session,
+    retriever,
+):
+    user = User(
+        email=None,
+        display_name="Vector Source Type Filter User",
+    )
+
+    db_session.add(user)
+    await db_session.flush()
+
+    document_a = Document(
+        user_id=user.id,
+        title="Meeting Transcript",
+        source_type="meeting_transcript",
+        content_hash="vector-source-type-a",
+        raw_text="PostgreSQL meeting transcript",
+    )
+
+    document_b = Document(
+        user_id=user.id,
+        title="Personal Note",
+        source_type="note",
+        content_hash="vector-source-type-b",
+        raw_text="PostgreSQL personal note",
+    )
+
+    db_session.add_all([document_a, document_b])
+    await db_session.flush()
+
+    chunk_a = DocumentChunk(
+        document_id=document_a.id,
+        chunk_index=0,
+        content="PostgreSQL was discussed in the meeting.",
+        embedding=[0.1] * 384,
+    )
+
+    chunk_b = DocumentChunk(
+        document_id=document_b.id,
+        chunk_index=0,
+        content="PostgreSQL was mentioned in my note.",
+        embedding=[0.1] * 384,
+    )
+
+    db_session.add_all([chunk_a, chunk_b])
+    await db_session.flush()
+
+    results = await retriever.search(
+        session=db_session,
+        query="PostgreSQL",
+        top_k=5,
+        source_type="meeting_transcript",
+    )
+
+    assert len(results) == 1
+    assert results[0].chunk_id == chunk_a.id
+    assert results[0].document_id == document_a.id
