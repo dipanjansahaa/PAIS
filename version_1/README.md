@@ -1,91 +1,104 @@
 # PAIS — Personal Decision & Action Intelligence System
 
-Milestone 1 repository skeleton.
+PAIS is a production-oriented personal intelligence system that transforms unstructured personal information into searchable, traceable, and actionable knowledge.
 
-This milestone establishes the production-oriented application structure, configuration boundary, FastAPI entry point, PostgreSQL/pgvector infrastructure, Alembic migrations, health/readiness endpoints, tests, and Docker setup.
+The system is designed around a simple principle:
 
-AI/RAG functionality is intentionally not implemented in this milestone.
+> The LLM is a reasoning and generation component, not the source of truth.
 
-## Milestone 1 — Database Foundation
+PostgreSQL and the original source documents remain the system of record.
 
-The database layer uses SQLAlchemy 2.x with the async PostgreSQL driver.
+AI-generated information is designed to remain traceable to its source.
 
-- `app/database/base.py` provides the central `Base` metadata object.
-- `app/database/session.py` owns the async engine and session factory.
-- `app/api/dependencies.py` exposes `get_db()` to the API layer.
-- `app/database/models/base_model.py` contains reusable UUID and timestamp mixins.
-- PostgreSQL is the source of truth; pgvector will be enabled through Alembic.
-- Domain models are intentionally not introduced until the relevant milestones.
+## Current Status
 
-The application expects a PostgreSQL async URL such as:
+PAIS V1 is under active development.
 
-```text
-postgresql+asyncpg://pais:pais@localhost:5432/pais
-```
+### Completed
 
-Do not use `Base.metadata.create_all()` for production schema management. Alembic will own schema migrations.
+- Project foundation and application architecture
+- PostgreSQL + pgvector database layer
+- Alembic migrations
+- Document ingestion pipeline
+- Document API
+- Text normalization and chunking
+- Local embedding generation
+- Vector retrieval
+- PostgreSQL lexical retrieval
+- Reciprocal Rank Fusion
+- Hybrid retrieval
+- Cross-Encoder reranking implementation
+- Retrieval evaluation and benchmarking
+- `/search` API
+- Search API unit and integration tests
+- Search user-isolation and project-filter validation
+- Full test-suite validation in the host environment
+- Full test-suite validation inside Docker
 
-## Health and Readiness
+### Test Status
 
-PAIS exposes two operational endpoints:
+The current test suite has been validated in both the local host environment and the Docker API environment.
 
-- `GET /health` is a liveness probe. It returns `200` when the API process is running and deliberately performs no database call.
-- `GET /ready` is a readiness probe. It executes `SELECT 1` through the request-scoped async SQLAlchemy session. It returns `200` when PostgreSQL is reachable and `503` when the database check fails.
+| Environment | Result |
+|---|---:|
+| Host / local Python environment | **178 passed, 1 skipped** |
+| Docker API container | **178 passed, 1 skipped** |
 
-Example healthy responses:
+The skipped test is the database integration health test, which is intentionally disabled unless `RUN_INTEGRATION_TESTS=1` is set.
 
-```json
-{"status": "ok"}
-```
+The current suite also includes integration coverage for the `/search` API, including:
 
-```json
-{"status": "ready", "database": "ok"}
-```
+- Returning real search results
+- User-level result isolation
+- Project-level filtering
 
-The readiness endpoint does not expose database exception details to clients.
+## Current Retrieval Strategy
 
-## Docker and PostgreSQL
+The current default retrieval pipeline is:
 
-Milestone 1 runs two containers:
+Vector Retrieval
 
-- `api` — FastAPI application.
-- `db` — PostgreSQL 16 with the `pgvector` extension available.
++
 
-Start the stack:
+Lexical Retrieval
 
-```bash
-cp .env.example .env
-docker compose up -d --build
-```
+↓
 
-Check service status:
+Reciprocal Rank Fusion
 
-```bash
-docker compose ps
-```
+↓
 
-Verify the API:
+Hybrid Retrieval
 
-```bash
-curl http://localhost:8000/health
-curl http://localhost:8000/ready
-```
+Cross-Encoder reranking is currently implemented as an experimental optional stage. The current evaluation dataset shows that the present reranking configuration does not improve the Hybrid + RRF baseline, so it is not currently treated as the default production retrieval strategy.
 
-The PostgreSQL container has a healthcheck, and the API waits for the database to become healthy before starting.
+## Search API
 
-The PostgreSQL volume is named `pais_postgres_data` and persists database data across container restarts.
+The `/search` milestone is currently complete.
 
-For a real database integration test:
+The search API builds on the retrieval pipeline and provides:
 
-```bash
-RUN_INTEGRATION_TESTS=1 pytest tests/integration -m integration
-```
+- Hybrid vector + lexical retrieval
+- RRF-based result fusion
+- User isolation
+- Project filtering
+- Optional document and source-type filtering
+- Configurable `top_k`
+- Retrieval results with document and chunk provenance
 
-On Windows PowerShell:
+The retrieval layer and `/search` API have been validated through unit tests, integration tests, and retrieval evaluation benchmarks.
 
-```powershell
-$env:RUN_INTEGRATION_TESTS="1"
-pytest tests/integration -m integration
-```
+## V1 Roadmap
 
-Schema management is still handled by Alembic; Docker Compose only provides the database infrastructure in this milestone.
+1. ~~Query / Search API~~ — `/search` completed
+2. Query API and grounded LLM answers with citations
+3. Structured intelligence extraction
+4. Tasks and commitments
+5. Decisions and provenance
+6. Projects, people, risks and follow-ups
+7. Daily intelligence
+8. Observability and model-run tracking
+9. Security and hardening
+10. Production-readiness cleanup
+11. End-to-end testing
+12. V1 documentation and demo
