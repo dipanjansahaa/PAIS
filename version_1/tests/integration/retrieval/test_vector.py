@@ -111,10 +111,19 @@ async def test_vector_retriever_returns_empty_list_when_no_embeddings_exist(
     db_session,
     retriever,
 ):
+    user = User(
+        email=None,
+        display_name="Vector Empty Result User",
+    )
+
+    db_session.add(user)
+    await db_session.flush()
+
     results = await retriever.search(
         session=db_session,
         query="database",
         top_k=5,
+        user_id=user.id,
     )
 
     assert results == []
@@ -178,6 +187,7 @@ async def test_vector_retriever_respects_top_k_one(
         session=db_session,
         query="What database did we decide to use?",
         top_k=1,
+        user_id=user.id,
     )
 
     assert len(results) == 1
@@ -254,6 +264,7 @@ async def test_vector_retriever_filters_by_project_id(
         session=db_session,
         query="PostgreSQL",
         top_k=5,
+        user_id=user.id,
         project_id=project_a.id,
     )
 
@@ -316,6 +327,7 @@ async def test_vector_retriever_filters_by_document_id(
         session=db_session,
         query="PostgreSQL",
         top_k=5,
+        user_id=user.id,
         document_id=document_a.id,
     )
 
@@ -378,9 +390,81 @@ async def test_vector_retriever_filters_by_source_type(
         session=db_session,
         query="PostgreSQL",
         top_k=5,
+        user_id=user.id,
         source_type="meeting_transcript",
     )
 
     assert len(results) == 1
     assert results[0].chunk_id == chunk_a.id
     assert results[0].document_id == document_a.id
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_vector_retriever_isolates_users(
+    db_session,
+    retriever,
+):
+    user_a = User(
+        email=None,
+        display_name="Vector User A",
+    )
+
+    user_b = User(
+        email=None,
+        display_name="Vector User B",
+    )
+
+    db_session.add_all([user_a, user_b])
+    await db_session.flush()
+
+    document_a = Document(
+        user_id=user_a.id,
+        title="User A Document",
+        source_type="text",
+        content_hash="vector-user-a",
+        raw_text="PostgreSQL User A",
+    )
+
+    document_b = Document(
+        user_id=user_b.id,
+        title="User B Document",
+        source_type="text",
+        content_hash="vector-user-b",
+        raw_text="PostgreSQL User B",
+    )
+
+    db_session.add_all([document_a, document_b])
+    await db_session.flush()
+
+    chunk_a = DocumentChunk(
+        document_id=document_a.id,
+        chunk_index=0,
+        content="PostgreSQL information belonging to User A.",
+        embedding=[0.1] * 384,
+    )
+
+    chunk_b = DocumentChunk(
+        document_id=document_b.id,
+        chunk_index=0,
+        content="PostgreSQL information belonging to User B.",
+        embedding=[0.1] * 384,
+    )
+
+    db_session.add_all([chunk_a, chunk_b])
+    await db_session.flush()
+
+    results = await retriever.search(
+        session=db_session,
+        query="PostgreSQL",
+        top_k=5,
+        user_id=user_a.id,
+    )
+
+    returned_ids = {
+        result.chunk_id
+        for result in results
+    }
+
+    assert chunk_a.id in returned_ids
+    assert chunk_b.id not in returned_ids

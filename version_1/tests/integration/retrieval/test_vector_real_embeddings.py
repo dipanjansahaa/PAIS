@@ -87,6 +87,7 @@ async def test_vector_retriever_with_real_embeddings(
         session=db_session,
         query="What database does the project use?",
         top_k=3,
+        user_id=user.id,
     )
 
     # Assert

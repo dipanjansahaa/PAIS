@@ -26,8 +26,10 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    # environment:
+    #   DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://pais:pais@db:5432/pais}
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://pais:pais@db:5432/pais}
+      DATABASE_URL: postgresql+asyncpg://pais:pais@db:5432/pais
     volumes:
       - .:/app
     depends_on:

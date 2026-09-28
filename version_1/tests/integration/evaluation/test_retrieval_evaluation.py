@@ -77,15 +77,20 @@ async def create_evaluation_documents(
 ):
     chunks_by_case = {}
 
-    for item in EVALUATION_DOCUMENTS:
-        document_identifier = item["title"].lower().replace(" ", "-")
+    user = User(
+        email="retrieval-evaluation@pais.local",
+        display_name="Retrieval Evaluation User",
+    )
 
-        user = User(
-            email=f"{document_identifier}@evaluation.local",
-            display_name=f"Evaluation User {item['title']}",
+    db_session.add(user)
+    await db_session.flush()
+
+    for item in EVALUATION_DOCUMENTS:
+        document_identifier = (
+            item["title"]
+            .lower()
+            .replace(" ", "-")
         )
-        db_session.add(user)
-        await db_session.flush()
 
         document = Document(
             user_id=user.id,
@@ -121,7 +126,7 @@ async def create_evaluation_documents(
         if item["relevant_case"] is not None:
             chunks_by_case[item["relevant_case"]] = chunk
 
-    return chunks_by_case
+    return chunks_by_case, user.id
 
 
 def print_evaluation_results(
@@ -159,7 +164,7 @@ async def test_retrieval_benchmark_comparison(
     evaluation_hybrid_retriever,
     evaluation_reranked_retriever,
 ):
-    chunks_by_case = await create_evaluation_documents(
+    chunks_by_case, evaluation_user_id = await create_evaluation_documents(
         db_session,
         evaluation_embedding_provider,
     )
@@ -211,24 +216,28 @@ async def test_retrieval_benchmark_comparison(
     vector_result = await vector_evaluator.evaluate(
         session=db_session,
         cases=cases,
+        user_id=evaluation_user_id,
         k=k,
     )
 
     lexical_result = await lexical_evaluator.evaluate(
         session=db_session,
         cases=cases,
+        user_id=evaluation_user_id,
         k=k,
     )
 
     hybrid_result = await hybrid_evaluator.evaluate(
         session=db_session,
         cases=cases,
+        user_id=evaluation_user_id,
         k=k,
     )
 
     reranked_result = await reranked_evaluator.evaluate(
         session=db_session,
         cases=cases,
+        user_id=evaluation_user_id,
         k=k,
     )
 

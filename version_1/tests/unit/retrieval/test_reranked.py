@@ -56,16 +56,20 @@ async def test_uses_candidate_k_before_reranking(
     base_retriever,
     reranking_service,
 ):
+    user_id = uuid4()
+
     results = await retriever.search(
         session="session",
         query="test query",
         top_k=5,
+        user_id=user_id,
     )
 
     base_retriever.search.assert_awaited_once_with(
         session="session",
         query="test query",
         top_k=20,
+        user_id=user_id,
         project_id=None,
         document_id=None,
         source_type=None,
@@ -85,6 +89,7 @@ async def test_passes_final_top_k_to_reranker(
         session="session",
         query="test query",
         top_k=5,
+        user_id=uuid4(),
     )
 
     reranking_service.rerank.assert_awaited_once()

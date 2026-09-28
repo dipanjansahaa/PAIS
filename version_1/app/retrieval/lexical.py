@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models.document import Document
@@ -21,6 +21,7 @@ class LexicalRetriever:
         session: AsyncSession,
         query: str,
         top_k: int = 5,
+        user_id: uuid.UUID | None = None,
         project_id: uuid.UUID | None = None,
         document_id: uuid.UUID | None = None,
         source_type: str | None = None,
@@ -30,6 +31,9 @@ class LexicalRetriever:
 
         if top_k <= 0:
             raise ValueError("top_k must be greater than zero.")
+
+        if user_id is None:
+            raise ValueError("user_id is required.")
 
         document_text = func.to_tsvector(
             self.language,
@@ -56,7 +60,8 @@ class LexicalRetriever:
                 Document.id == DocumentChunk.document_id,
             )
             .where(
-                document_text.op("@@")(query_text)
+                Document.user_id == user_id,
+                document_text.op("@@")(query_text),
             )
         )
 

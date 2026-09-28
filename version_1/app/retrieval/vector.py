@@ -21,6 +21,7 @@ class VectorRetriever:
         session: AsyncSession,
         query: str,
         top_k: int = 5,
+        user_id: uuid.UUID | None = None,
         project_id: uuid.UUID | None = None,
         document_id: uuid.UUID | None = None,
         source_type: str | None = None,
@@ -30,6 +31,9 @@ class VectorRetriever:
 
         if top_k <= 0:
             raise ValueError("top_k must be greater than zero.")
+
+        if user_id is None:
+            raise ValueError("user_id is required.")
 
         query_embedding = await self.embedding_provider.embed_query(query)
 
@@ -42,8 +46,14 @@ class VectorRetriever:
                 DocumentChunk,
                 distance.label("distance"),
             )
-            .join(Document, Document.id == DocumentChunk.document_id)
-            .where(DocumentChunk.embedding.is_not(None))
+            .join(
+                Document,
+                Document.id == DocumentChunk.document_id,
+            )
+            .where(
+                Document.user_id == user_id,
+                DocumentChunk.embedding.is_not(None),
+            )
         )
 
         if project_id is not None:

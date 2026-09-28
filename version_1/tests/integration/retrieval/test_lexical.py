@@ -118,10 +118,19 @@ async def test_lexical_retriever_returns_empty_list_when_no_match_exists(
     db_session,
     retriever,
 ):
+    user = User(
+        email=None,
+        display_name="Lexical Empty Result User",
+    )
+
+    db_session.add(user)
+    await db_session.flush()
+
     results = await retriever.search(
         session=db_session,
         query="nonexistentlexicalkeyword",
         top_k=5,
+        user_id=user.id,
     )
 
     assert results == []
@@ -133,7 +142,7 @@ async def test_lexical_retriever_returns_exact_keyword_match(
     db_session,
     retriever,
 ):
-    _, chunks = await create_document_with_chunks(
+    document, chunks = await create_document_with_chunks(
         db_session,
         title="Exact Keyword Test",
         chunks=[
@@ -157,6 +166,7 @@ async def test_lexical_retriever_returns_exact_keyword_match(
         session=db_session,
         query="PostgreSQL",
         top_k=5,
+        user_id=document.user_id,
     )
 
     assert len(results) == 1
@@ -170,7 +180,7 @@ async def test_lexical_retriever_ranks_more_relevant_match_first(
     db_session,
     retriever,
 ):
-    _, chunks = await create_document_with_chunks(
+    document, chunks = await create_document_with_chunks(
         db_session,
         title="Ranking Test",
         chunks=[
@@ -194,6 +204,7 @@ async def test_lexical_retriever_ranks_more_relevant_match_first(
         session=db_session,
         query="PostgreSQL",
         top_k=5,
+        user_id=document.user_id,
     )
 
     assert len(results) == 2
@@ -210,7 +221,7 @@ async def test_lexical_retriever_respects_top_k(
     db_session,
     retriever,
 ):
-    _, chunks = await create_document_with_chunks(
+    document, chunks = await create_document_with_chunks(
         db_session,
         title="Top K Test",
         chunks=[
@@ -236,6 +247,7 @@ async def test_lexical_retriever_respects_top_k(
         session=db_session,
         query="toplimit",
         top_k=2,
+        user_id=document.user_id,
     )
 
     assert len(results) == 2
@@ -281,6 +293,7 @@ async def test_lexical_retriever_returns_retrieval_result_fields(
         session=db_session,
         query="lexicalresult",
         top_k=5,
+        user_id=document.user_id,
     )
 
     assert len(results) == 1
@@ -367,6 +380,7 @@ async def test_lexical_retriever_filters_by_project_id(
         session=db_session,
         query="PostgreSQL",
         top_k=5,
+        user_id=user.id,
         project_id=project_a.id,
     )
 
@@ -427,6 +441,7 @@ async def test_lexical_retriever_filters_by_document_id(
         session=db_session,
         query="PostgreSQL",
         top_k=5,
+        user_id=user.id,
         document_id=document_a.id,
     )
 
@@ -487,9 +502,79 @@ async def test_lexical_retriever_filters_by_source_type(
         session=db_session,
         query="PostgreSQL",
         top_k=5,
+        user_id=user.id,
         source_type="meeting_transcript",
     )
 
     assert len(results) == 1
     assert results[0].chunk_id == chunk_a.id
     assert results[0].document_id == document_a.id
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_lexical_retriever_isolates_users(
+    db_session,
+    retriever,
+):
+    user_a = User(
+        email=None,
+        display_name="Lexical User A",
+    )
+
+    user_b = User(
+        email=None,
+        display_name="Lexical User B",
+    )
+
+    db_session.add_all([user_a, user_b])
+    await db_session.flush()
+
+    document_a = Document(
+        user_id=user_a.id,
+        title="User A Document",
+        source_type="text",
+        content_hash="lexical-user-a",
+        raw_text="PostgreSQL User A",
+    )
+
+    document_b = Document(
+        user_id=user_b.id,
+        title="User B Document",
+        source_type="text",
+        content_hash="lexical-user-b",
+        raw_text="PostgreSQL User B",
+    )
+
+    db_session.add_all([document_a, document_b])
+    await db_session.flush()
+
+    chunk_a = DocumentChunk(
+        document_id=document_a.id,
+        chunk_index=0,
+        content="PostgreSQL information belonging to User A.",
+    )
+
+    chunk_b = DocumentChunk(
+        document_id=document_b.id,
+        chunk_index=0,
+        content="PostgreSQL information belonging to User B.",
+    )
+
+    db_session.add_all([chunk_a, chunk_b])
+    await db_session.flush()
+
+    results = await retriever.search(
+        session=db_session,
+        query="PostgreSQL",
+        top_k=5,
+        user_id=user_a.id,
+    )
+
+    returned_ids = {
+        result.chunk_id
+        for result in results
+    }
+
+    assert chunk_a.id in returned_ids
+    assert chunk_b.id not in returned_ids

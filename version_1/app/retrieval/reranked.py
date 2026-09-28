@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import uuid
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.retrieval.models import RetrievalResult
 
 
 class RerankedRetriever:
     """
-    Wraps an existing retriever with a reranking stage.
+    Wrap an existing retriever with a reranking stage.
 
     The base retriever produces a larger candidate set.
     The reranker then selects the final top_k results.
@@ -18,7 +22,9 @@ class RerankedRetriever:
         candidate_k: int = 20,
     ) -> None:
         if candidate_k <= 0:
-            raise ValueError("candidate_k must be greater than zero.")
+            raise ValueError(
+                "candidate_k must be greater than zero."
+            )
 
         self.base_retriever = base_retriever
         self.reranking_service = reranking_service
@@ -26,12 +32,13 @@ class RerankedRetriever:
 
     async def search(
         self,
-        session,
+        session: AsyncSession,
         query: str,
         top_k: int = 5,
-        project_id=None,
-        document_id=None,
-        source_type=None,
+        user_id: uuid.UUID | None = None,
+        project_id: uuid.UUID | None = None,
+        document_id: uuid.UUID | None = None,
+        source_type: str | None = None,
     ) -> list[RetrievalResult]:
         if not query.strip():
             raise ValueError("Query must not be empty.")
@@ -39,10 +46,14 @@ class RerankedRetriever:
         if top_k <= 0:
             raise ValueError("top_k must be greater than zero.")
 
+        if user_id is None:
+            raise ValueError("user_id is required.")
+
         candidates = await self.base_retriever.search(
             session=session,
             query=query,
             top_k=self.candidate_k,
+            user_id=user_id,
             project_id=project_id,
             document_id=document_id,
             source_type=source_type,

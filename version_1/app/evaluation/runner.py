@@ -23,6 +23,8 @@ class RetrievalEvaluator:
         self,
         session,
         cases: list[RetrievalEvaluationCase],
+        *,
+        user_id,
         k: int = 5,
     ) -> RetrievalEvaluationResult:
         if not cases:
@@ -39,6 +41,7 @@ class RetrievalEvaluator:
                 session=session,
                 query=case.query,
                 top_k=k,
+                user_id=user_id,
             )
 
             retrieved_ids = [
