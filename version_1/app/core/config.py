@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     reranker_device: str = "cpu"
     reranker_batch_size: int = 16
 
+    llm_provider: str = "ollama"
+    llm_model: str = "llama3.2:3b"
+    llm_base_url: str = "http://localhost:11434"
+    llm_temperature: float = 0.0
+    llm_timeout: float = 60.0
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

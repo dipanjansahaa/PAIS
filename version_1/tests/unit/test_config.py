@@ -78,3 +78,14 @@ def test_embedding_settings() -> None:
     assert settings.embedding_device == "cpu"
     assert settings.embedding_batch_size == 32
     assert settings.embedding_normalize is True
+
+
+def test_llm_settings():
+    """Settings should expose the configured LLM values."""
+    settings = Settings()
+
+    assert settings.llm_provider == "ollama"
+    assert settings.llm_model == "llama3.2:3b"
+    assert settings.llm_base_url == "http://localhost:11434"
+    assert settings.llm_temperature == 0.0
+    assert settings.llm_timeout == 60.0
