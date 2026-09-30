@@ -10,7 +10,9 @@ from app.database.base import Base
 from app.database.models.base_model import TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.database.models.commitment import Commitment
     from app.database.models.document import Document
+    from app.database.models.task import Task
     from app.database.models.user import User
 
 
@@ -49,6 +51,18 @@ class Project(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     documents: Mapped[list[Document]] = relationship(
         "Document",
+        back_populates="project",
+        passive_deletes=True,
+    )
+
+    tasks: Mapped[list[Task]] = relationship(
+        "Task",
+        back_populates="project",
+        passive_deletes=True,
+    )
+
+    commitments: Mapped[list[Commitment]] = relationship(
+        "Commitment",
         back_populates="project",
         passive_deletes=True,
     )
