@@ -7,9 +7,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
 from app.database.models.base_model import TimestampMixin, UUIDPrimaryKeyMixin
+from app.database.models.decision import Decision
 
 if TYPE_CHECKING:
     from app.database.models.commitment import Commitment
+    from app.database.models.decision import Decision
     from app.database.models.document import Document
     from app.database.models.project import Project
     from app.database.models.task import Task
@@ -48,6 +50,13 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     tasks: Mapped[list[Task]] = relationship(
         "Task",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    decisions: Mapped[list[Decision]] = relationship(
+        "Decision",
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
