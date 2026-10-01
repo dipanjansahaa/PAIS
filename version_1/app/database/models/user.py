@@ -15,6 +15,8 @@ if TYPE_CHECKING:
     from app.database.models.document import Document
     from app.database.models.project import Project
     from app.database.models.task import Task
+    from app.database.models.person import Person
+    from app.database.models.risk import Risk
 
 
 class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -64,6 +66,20 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     commitments: Mapped[list[Commitment]] = relationship(
         "Commitment",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    people: Mapped[list[Person]] = relationship(
+        "Person",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    risks: Mapped[list[Risk]] = relationship(
+        "Risk",
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,

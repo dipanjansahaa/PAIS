@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from app.database.models.commitment import Commitment
     from app.database.models.decision import Decision
     from app.database.models.document import Document
+    from app.database.models.document_chunk import DocumentChunk
     from app.database.models.task import Task
     from app.database.models.user import User
 
@@ -72,4 +73,43 @@ class Project(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         "Commitment",
         back_populates="project",
         passive_deletes=True,
+    )
+
+    sources: Mapped[list[ProjectSource]] = relationship(
+        "ProjectSource",
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class ProjectSource(Base):
+    """Provenance linking a project to its source document chunks."""
+
+    __tablename__ = "project_sources"
+
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(
+            "projects.id",
+            ondelete="CASCADE",
+        ),
+        primary_key=True,
+    )
+
+    chunk_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(
+            "document_chunks.id",
+            ondelete="CASCADE",
+        ),
+        primary_key=True,
+        index=True,
+    )
+
+    project: Mapped[Project] = relationship(
+        "Project",
+        back_populates="sources",
+    )
+
+    chunk: Mapped[DocumentChunk] = relationship(
+        "DocumentChunk",
     )
