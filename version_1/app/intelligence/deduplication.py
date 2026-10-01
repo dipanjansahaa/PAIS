@@ -10,6 +10,9 @@ from app.intelligence.models import (
     CommitmentCandidate,
     DecisionCandidate,
     IntelligenceSource,
+    PersonCandidate,
+    ProjectCandidate,
+    RiskCandidate,
     StructuredIntelligence,
     TaskCandidate,
 )
@@ -268,6 +271,146 @@ def deduplicate_decisions(
     return result
 
 
+def deduplicate_projects(
+    projects: Iterable[ProjectCandidate],
+) -> list[ProjectCandidate]:
+    """Deduplicate project candidates deterministically."""
+
+    result: list[ProjectCandidate] = []
+    indexes: dict[str, int] = {}
+
+    mergeable_fields = ("description",)
+
+    for project in projects:
+        key = normalize_text(project.name)
+
+        existing_index = indexes.get(key)
+
+        if existing_index is None:
+            indexes[key] = len(result)
+            result.append(project)
+            continue
+
+        existing = result[existing_index]
+
+        if not _compatible(
+            existing,
+            project,
+            mergeable_fields,
+        ):
+            result.append(project)
+            continue
+
+        merged = _merge_optional_fields(
+            existing,
+            project,
+            mergeable_fields,
+        )
+
+        merged = merged.model_copy(
+            update={
+                "sources": _merge_sources(
+                    existing.sources,
+                    project.sources,
+                )
+            }
+        )
+
+        result[existing_index] = merged
+
+    return result
+
+
+def deduplicate_people(
+    people: Iterable[PersonCandidate],
+) -> list[PersonCandidate]:
+    """Deduplicate person candidates conservatively."""
+
+    result: list[PersonCandidate] = []
+    indexes: dict[tuple[str, str | None], int] = {}
+
+    for person in people:
+        key = (
+            normalize_text(person.name),
+            _normalize_optional_text(person.email),
+        )
+
+        existing_index = indexes.get(key)
+
+        if existing_index is None:
+            indexes[key] = len(result)
+            result.append(person)
+            continue
+
+        existing = result[existing_index]
+
+        merged = existing.model_copy(
+            update={
+                "sources": _merge_sources(
+                    existing.sources,
+                    person.sources,
+                )
+            }
+        )
+
+        result[existing_index] = merged
+
+    return result
+
+
+def deduplicate_risks(
+    risks: Iterable[RiskCandidate],
+) -> list[RiskCandidate]:
+    """Deduplicate risk candidates deterministically."""
+
+    result: list[RiskCandidate] = []
+    indexes: dict[tuple[str, str | None], int] = {}
+
+    mergeable_fields = ("severity",)
+
+    for risk in risks:
+        key = (
+            normalize_text(risk.title),
+            _normalize_optional_text(risk.description),
+        )
+
+        existing_index = indexes.get(key)
+
+        if existing_index is None:
+            indexes[key] = len(result)
+            result.append(risk)
+            continue
+
+        existing = result[existing_index]
+
+        if not _compatible(
+            existing,
+            risk,
+            mergeable_fields,
+        ):
+            result.append(risk)
+            continue
+
+        merged = _merge_optional_fields(
+            existing,
+            risk,
+            mergeable_fields,
+        )
+
+        merged = merged.model_copy(
+            update={
+                "sources": _merge_sources(
+                    existing.sources,
+                    risk.sources,
+                )
+            }
+        )
+
+        result[existing_index] = merged
+
+    return result
+
+
 def deduplicate_intelligence(
     intelligence: StructuredIntelligence,
 ) -> StructuredIntelligence:
@@ -283,6 +426,15 @@ def deduplicate_intelligence(
             ),
             "decisions": deduplicate_decisions(
                 intelligence.decisions,
+            ),
+            "projects": deduplicate_projects(
+                intelligence.projects,
+            ),
+            "people": deduplicate_people(
+                intelligence.people,
+            ),
+            "risks": deduplicate_risks(
+                intelligence.risks,
             ),
         }
     )
