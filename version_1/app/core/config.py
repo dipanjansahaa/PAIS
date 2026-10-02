@@ -28,8 +28,6 @@ class Settings(BaseSettings):
     auth_jwt_issuer: str | None = None
     auth_jwt_audience: str | None = None
 
-    max_upload_size_bytes: int = 10 * 1024 * 1024
-
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

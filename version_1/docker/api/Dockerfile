@@ -6,16 +6,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Dependency definitions first: changes to app/tests won't invalidate this layer.
+# Install dependencies before copying application source for better layer caching.
 COPY pyproject.toml README.md ./
 RUN pip install --upgrade pip && pip install ".[dev]"
 
-# Project files after dependency installation.
+# Copy application, migration, and test sources.
 COPY alembic.ini ./
 COPY app ./app
 COPY alembic ./alembic
 COPY tests ./tests
 
+# Run the application as a non-root user.
 RUN useradd --create-home --uid 10001 pais && \
     chown -R pais:pais /app
 

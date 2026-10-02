@@ -24,5 +24,4 @@ def test_ready_with_real_database() -> None:
     assert response.status_code == 200
     assert response.json() == {
         "status": "ready",
-        # "database": "available",
     }

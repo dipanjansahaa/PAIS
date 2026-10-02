@@ -1,4 +1,4 @@
-.PHONY: install dev test lint format migrate migration db-up db-down db-check
+.PHONY: install dev test lint format migrate migration db-up db-down db-check docker-up docker-down docker-logs integration-test
 
 install:
 	python -m pip install -e ".[dev]"

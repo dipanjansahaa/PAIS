@@ -1,387 +1,446 @@
 # PAIS — Personal Decision & Action Intelligence System
 
-PAIS is a production-oriented personal intelligence system that transforms unstructured personal information into searchable, traceable, and actionable knowledge.
+PAIS is a personal intelligence system that turns unstructured information into **searchable, traceable, structured, and actionable knowledge**.
 
-The system is designed around a simple principle:
+It combines document ingestion, semantic and lexical retrieval, grounded LLM generation, structured intelligence extraction, provenance tracking, and actionable domain models to help transform information into useful context and decisions.
 
-> **The LLM is a reasoning and generation component, not the source of truth.**
+The core idea behind PAIS is:
 
-PostgreSQL and the original source documents remain the system of record.
+> **Use the LLM for reasoning and generation, while keeping the source data and application state authoritative.**
 
-AI-generated information is designed to remain traceable to its source wherever the system derives information from retrieved document evidence.
+PAIS does not treat an LLM's output as the source of truth. Original documents and persisted application data remain authoritative, while generated information is grounded in retrieved evidence and linked back to its sources wherever applicable.
 
 ---
 
-## Current Status
+## What PAIS Does
 
-PAIS V1 is under active development.
+At a high level, PAIS takes information such as documents, notes, and other textual content and turns it into a structured personal knowledge system.
 
-The project has progressed from document ingestion and retrieval into grounded generation, structured intelligence, actionable domain modeling, and daily intelligence.
+```text
+                    ┌─────────────────────┐
+                    │   Source Documents  │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌───────────────────────┐
+                    │  Ingestion & Parsing  │
+                    └──────────┬────────────┘
+                               │
+                               ▼
+                    ┌───────────────────────┐
+                    │ Chunking & Embedding  │
+                    └──────────┬────────────┘
+                               │
+                  ┌────────────┴────────────┐
+                  │                         │
+                  ▼                         ▼
+        ┌─────────────────┐       ┌─────────────────┐
+        │ Vector Retrieval│       │ Lexical Search  │
+        └────────┬────────┘       └────────┬────────┘
+                 └────────────┬────────────┘
+                              │
+                              ▼
+                    ┌────────────────────┐
+                    │  Hybrid Retrieval  │
+                    │  + RRF Fusion      │
+                    └──────────┬─────────┘
+                               │
+                  ┌────────────┴────────────┐
+                  │                         │
+                  ▼                         ▼
+        ┌─────────────────┐       ┌─────────────────┐
+        │      Search     │       │  Grounded Query │
+        └─────────────────┘       └────────┬────────┘
+                                           │
+                                           ▼
+                                  ┌─────────────────┐
+                                  │ LLM Generation  │
+                                  └────────┬────────┘
+                                           │
+                                           ▼
+                              ┌────────────────────────┐
+                              │ Structured Intelligence│
+                              └───────────┬────────────┘
+                                          │
+            ┌───────────────┬─────────────┼─────────────┬──────────────┐
+            ▼               ▼             ▼             ▼              ▼
+          Tasks        Commitments    Decisions      Projects        Risks
+                                          │
+                                          │
+                                          ▼
+                                  Daily Intelligence
+```
 
-### Completed
+---
 
-- Project foundation and application architecture
-- PostgreSQL + pgvector database layer
-- SQLAlchemy async database access
-- Alembic migration workflow
-- User isolation at the application/data-access boundaries
-- Document ingestion pipeline
-- Document API
-- Text normalization
-- Text chunking
-- Local embedding generation
-- Vector retrieval
-- PostgreSQL lexical retrieval
-- Reciprocal Rank Fusion (RRF)
-- Hybrid retrieval
-- Cross-Encoder reranking implementation
-- Retrieval evaluation and benchmarking
-- `/api/v1/search` API
-- Search API unit and integration tests
-- Search user-isolation validation
-- Search project-filter validation
+## Key Features
 
-### Query and Grounded Generation
+### Document Intelligence
 
-- `/api/v1/query` API
-- Query context construction
-- Hybrid retrieval-backed query workflow
-- Grounded LLM answer generation
-- Source/chunk citations in query responses
-- Configurable retrieval filters and `top_k`
-- LLM model and latency metadata in query responses
+* Document ingestion, parsing, normalization, and chunking
+* Embedding generation and persistence with PostgreSQL + pgvector
+* Configurable upload limits
 
-The query workflow is designed so that retrieved source material is the grounding context for generation rather than allowing the LLM to act as the system of record.
+### Hybrid Search
+
+* Semantic search using `BAAI/bge-small-en-v1.5`
+* PostgreSQL full-text lexical search
+* Hybrid retrieval using Reciprocal Rank Fusion (RRF)
+* Optional Cross-Encoder reranking
+
+### Grounded LLM Query
+
+* Retrieval-augmented generation
+* Source-grounded answers
+* Document/chunk references
+* Configurable retrieval and project filtering
 
 ### Structured Intelligence
 
-Structured intelligence extraction is implemented using a provider-independent structured LLM layer and Pydantic schemas.
-
-Current extraction categories include:
-
-- Tasks
-- Commitments
-- Decisions
-- Projects
-- People
-- Risks
-- Follow-ups
-- Deadlines
-
-The extraction layer includes:
-
-- Structured LLM response validation
-- Source-chunk provenance validation
-- Deduplication for supported intelligence categories
-- Model metadata
-- Generation latency metadata
-- Tests for models, extraction, provenance, and deduplication
-
-### Actionable Domain Modeling
-
-Persisted domain slices currently include:
-
-- Tasks
-- Commitments
-- Decisions
-- Projects
-- People
-- Risks
-
-These domain objects maintain provenance back to source chunks where applicable.
-
-The current implementation deliberately keeps domain modeling separate from the LLM extraction layer so that generated candidates can be validated and persisted through application services.
+* Extracts tasks, commitments, decisions, projects, people, and risks
+* Schema-validated structured LLM output
+* Deduplication and source provenance
 
 ### Daily Intelligence
 
-Daily Intelligence is complete.
+* Combines tasks, commitments, decisions, projects, people, and risks
+* Deterministic priority calculation
+* LLM-generated daily intelligence summary
 
-The current workflow contains:
+### Observability
 
-1. Daily snapshot construction
-2. Open-task and open-commitment selection
-3. Recent decision/change detection
-4. Deterministic priority calculation
-5. Structured context construction
-6. Project/person/risk context enrichment
-7. Structured LLM generation
-8. Daily intelligence API response
+* LLM model-run tracking
+* Token usage and latency metadata
+* Provider/model information
+* Failure tracking
 
-The Daily workflow includes an explainable deterministic priority engine. The LLM does not calculate or override priority; it generates the human-readable intelligence brief from the prepared context.
+### Security
 
-The API endpoint is:
+* JWT authentication
+* User/tenant isolation
+* Upload-size enforcement
+* Security headers
+* Production configuration validation
+
+---
+
+## Architecture
+
+PAIS follows a layered architecture.
 
 ```text
-GET /api/v1/daily
+┌─────────────────────────────────────────────┐
+│                  API Layer                  │
+│       FastAPI / Authentication / HTTP       │
+├─────────────────────────────────────────────┤
+│              Application Layer              │
+│       Services / Query / Daily / Tasks      │
+├─────────────────────────────────────────────┤
+│              Intelligence Layer             │
+│     LLM / Structured LLM / Retrieval        │
+├─────────────────────────────────────────────┤
+│               Domain Layer                  │
+│ Tasks / Commitments / Decisions / Projects  │
+│       People / Risks / Provenance           │
+├─────────────────────────────────────────────┤
+│              Persistence Layer              │
+│       SQLAlchemy / PostgreSQL / pgvector    │
+└─────────────────────────────────────────────┘
 ```
 
-Daily API validation includes timezone validation and current-user isolation.
+The architecture intentionally separates:
+
+* HTTP concerns
+* Authentication
+* Business services
+* Retrieval
+* LLM providers
+* Structured extraction
+* Domain models
+* Persistence
+* Observability
 
 ---
 
-## Current API Surface
+## Technology Stack
 
-| Endpoint | Purpose | Status |
-|---|---|---|
-| `GET /api/v1/health` | Application health | Complete |
-| `GET /api/v1/ready` | Readiness check | Complete |
-| `POST /api/v1/documents` | Document ingestion | Complete |
-| `GET /api/v1/search` | Hybrid retrieval | Complete |
-| `POST /api/v1/query` | Grounded LLM answers | Complete |
-| `GET /api/v1/daily` | Daily intelligence | Complete |
+### Backend
+
+* Python 3.12+
+* FastAPI
+* Uvicorn
+* Pydantic
+* Pydantic Settings
+
+### Database
+
+* PostgreSQL
+* pgvector
+* SQLAlchemy 2.x
+* asyncpg
+* Alembic
+
+### AI / Retrieval
+
+* Sentence Transformers
+* `BAAI/bge-small-en-v1.5`
+* `BAAI/bge-reranker-base`
+* Ollama
+* Llama 3.2 3B
+
+### Testing
+
+* pytest
+* pytest-asyncio
+* HTTPX
+* FastAPI/ASGI testing
+* Integration tests against PostgreSQL
+
+### Development
+
+* Docker
+* Docker Compose
+* Ruff
+* Git
 
 ---
 
-## Current Retrieval Strategy
+## Project Structure
 
-The current default retrieval pipeline is:
+The main application structure is organized around infrastructure, APIs, domain services, retrieval, LLMs, and tests.
 
 ```text
-Vector Retrieval
-       +
-Lexical Retrieval
-       ↓
-Reciprocal Rank Fusion
-       ↓
-Hybrid Retrieval
-```
-
-Cross-Encoder reranking is implemented as an experimental optional stage.
-
-The current retrieval evaluation showed that the present reranking configuration does not improve the Hybrid + RRF baseline, so reranking is **not currently the default production retrieval strategy**.
-
----
-
-## Source Traceability
-
-PAIS treats source traceability as a core architectural property.
-
-For source-derived intelligence, the system preserves references to the document chunks from which information was obtained.
-
-The current provenance model covers:
-
-- Retrieval results → document/chunk provenance
-- Structured intelligence → source chunk IDs
-- Tasks → task source chunks
-- Commitments → commitment source chunks
-- Decisions → decision source chunks
-- Projects → project source chunks
-- People → person source chunks
-- Risks → risk source chunks
-
-The LLM is therefore used to interpret, structure, or generate information while PostgreSQL and source documents remain authoritative.
-
----
-
-## LLM Architecture
-
-PAIS currently uses a provider-independent LLM abstraction.
-
-The current implementation includes:
-
-```text
-Application Service
-       ↓
-LLM Provider Interface
-       ↓
-Configured Provider
-       ↓
-Ollama
-       ↓
-Configured Model
-```
-
-Current default configuration includes:
-
-- Provider: `ollama`
-- Model: `llama3.2:3b`
-- Temperature: `0.0`
-- Configurable request timeout
-
-The normalized LLM response currently exposes:
-
-- Generated content
-- Model name
-- Prompt token usage, when provided by the provider
-- Completion token usage, when provided by the provider
-- Total token usage
-- Latency
-- Finish reason
-
-Structured generation is handled through a dedicated `StructuredLLMProvider`, which validates provider output against Pydantic schemas.
-
-This existing metadata and abstraction layer will form the foundation for the upcoming **Observability / Model Runs** milestone.
-
----
-
-## Test Status
-
-The latest full host-environment regression run after completing Daily Intelligence is:
-
-```text
-409 passed, 1 skipped, 1 warning
-```
-
-The skipped test is the database integration health test, which is intentionally disabled unless:
-
-```text
-RUN_INTEGRATION_TESTS=1
-```
-
-is enabled.
-
-The current test suite contains coverage across:
-
-- API endpoints
-- Retrieval
-- Reranking
-- Evaluation
-- Ingestion
-- Embeddings
-- Query
-- Structured intelligence
-- Tasks
-- Commitments
-- Decisions
-- Projects
-- People
-- Risks
-- Daily intelligence
-- LLM providers and structured generation
-
-Earlier in V1 development, the retrieval/search milestone was also validated in the Docker API environment.
-
----
-
-## V1 Roadmap
-
-### Completed
-
-1. ~~Project foundation and application architecture~~
-2. ~~PostgreSQL + pgvector database layer~~
-3. ~~Document ingestion and document API~~
-4. ~~Chunking and embeddings~~
-5. ~~Vector + lexical retrieval~~
-6. ~~RRF hybrid retrieval~~
-7. ~~Cross-Encoder reranking implementation and evaluation~~
-8. ~~`/search` API~~
-9. ~~Query API and grounded LLM answers with citations~~
-10. ~~Structured intelligence extraction~~
-11. ~~Tasks and commitments~~
-12. ~~Decisions and provenance~~
-13. ~~Projects, people and risks~~
-14. ~~Daily intelligence~~
-
-### Next
-
-15. **Observability and model-run tracking**
-
-### Remaining
-
-16. **Security and hardening**
-17. **Production-readiness cleanup**
-18. **End-to-end testing**
-19. **V1 documentation and demo**
-
----
-
-## Observability / Model Runs — Next Milestone
-
-The next milestone is to make LLM execution observable and persist model-run information without turning observability into a second source of truth.
-
-The current codebase already provides a useful foundation:
-
-- Provider-independent `LLMProvider`
-- Normalized `LLMResponse`
-- Model identification
-- Token usage when available
-- Latency measurement
-- Finish reason
-- Structured generation through `StructuredLLMProvider`
-- Multiple application-level LLM consumers such as Query, Structured Intelligence, and Daily Intelligence
-
-The upcoming milestone will therefore build on the existing abstractions rather than introducing a separate LLM architecture.
-
-The exact model-run schema, persistence boundary, correlation with application operations, failure handling, and API/operational visibility will be designed from the current implementation before code changes are made.
-
-No observability milestone is considered complete until the implementation, tests, and full regression validation are complete.
-
----
-
-## Architectural Principles
-
-### 1. LLM is not the source of truth
-
-LLMs interpret and generate information.
-
-PostgreSQL and original source documents remain authoritative.
-
-### 2. Retrieval before generation
-
-When generation depends on personal source material, relevant information should be retrieved and supplied as explicit context.
-
-### 3. Provenance is first-class
-
-Source-derived information should remain traceable to the source chunks that support it.
-
-### 4. Deterministic logic stays outside the LLM
-
-Rules such as priority calculation, filtering, ownership validation, provenance validation, and deduplication should be handled by application code where practical.
-
-### 5. User isolation is enforced explicitly
-
-User-owned data must be filtered by the authenticated user at the application/data-access boundary.
-
-### 6. Services own business behavior
-
-Application services coordinate domain operations while database transactions remain controlled by the surrounding application layer.
-
-### 7. Provider independence
-
-LLM-dependent application code should depend on the provider abstraction rather than directly coupling business logic to a specific LLM vendor or runtime.
-
-### 8. Tests are part of the milestone
-
-A feature is not considered complete merely because its implementation exists.
-
-The milestone is complete after:
-
-```text
-Implementation
-      ↓
-Unit / Integration Tests
-      ↓
-Regression Validation
-      ↓
-Checkpoint
+PAIS/
+│
+├── app/
+│   ├── api/
+│   │   ├── dependencies.py
+│   │   └── v1/
+│   │       ├── daily.py
+│   │       ├── documents.py
+│   │       ├── health.py
+│   │       ├── query.py
+│   │       ├── search.py
+│   │       └── router.py
+│   │
+│   ├── auth/
+│   │   ├── models.py
+│   │   └── service.py
+│   │
+│   ├── core/
+│   │   └── config.py
+│   │
+│   ├── database/
+│   │   ├── models/
+│   │   └── session.py
+│   │
+│   ├── daily/
+│   ├── decisions/
+│   ├── embeddings/
+│   ├── evaluation/
+│   ├── ingestion/
+│   ├── intelligence/
+│   ├── llm/
+│   ├── observability/
+│   ├── people/
+│   ├── projects/
+│   ├── query/
+│   ├── reranking/
+│   ├── retrieval/
+│   ├── risks/
+│   └── tasks/
+│
+├── alembic/
+│   └── versions/
+│
+├── docker/
+│   └── api/
+│       └── Dockerfile
+│
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   └── evaluation/
+│
+├── docker-compose.yml
+├── pyproject.toml
+├── .env.example
+└── README.md
 ```
 
 ---
 
-## Development Status
+## API
 
-PAIS V1 is currently at:
+The PAIS REST API is exposed under the `/api/v1` prefix.
 
-```text
-Retrieval
-    ↓
-Grounded Query
-    ↓
-Structured Intelligence
-    ↓
-Actionable Domain Modeling
-    ↓
-Daily Intelligence
-    ↓
->>> Observability / Model Runs
-    ↓
-Security / Hardening
-    ↓
-Production Cleanup
-    ↓
-End-to-End Testing
-    ↓
-Documentation / Demo
+| Method | Endpoint            | Description                                             |
+| ------ | ------------------- | ------------------------------------------------------- |
+| `GET`  | `/api/v1/health`    | Liveness check                                          |
+| `GET`  | `/api/v1/ready`     | Readiness check with database connectivity              |
+| `POST` | `/api/v1/documents` | Upload and ingest a document                            |
+| `POST` | `/api/v1/search`    | Perform hybrid document retrieval                       |
+| `POST` | `/api/v1/query`     | Generate a grounded answer using retrieved context      |
+| `GET`  | `/api/v1/daily`     | Generate daily intelligence from structured information |
+
+### Authentication
+
+Protected endpoints use JWT bearer authentication.
+
+```http
+Authorization: Bearer <token>
 ```
 
-The current implementation should be treated as the source of truth for future milestone design. The roadmap describes the intended progression, but implementation decisions may evolve when the existing architecture or production requirements provide a concrete reason to change them.
+Authentication is configured through environment variables.
+
+---
+
+## Getting Started
+
+### Requirements
+
+* Python 3.12+
+* Docker Desktop with Docker Compose
+* Ollama with the configured LLM model
+
+Docker Compose provides the PostgreSQL database with pgvector.
+
+### 1. Clone the Repository
+
+```bash
+git clone <repository-url>
+cd PAIS/version_1
+```
+
+### 2. Configure Environment
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env
+```
+
+On Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Update the required values in `.env`, including authentication and LLM configuration.
+
+Do not commit `.env` to source control.
+
+### 3. Install Dependencies
+
+For local development:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+### 4. Start the Application
+
+Start PostgreSQL and the PAIS API:
+
+```bash
+docker compose up -d --build
+```
+
+Run database migrations:
+
+```bash
+alembic upgrade head
+```
+
+The API will be available at:
+
+```text
+http://localhost:8000
+```
+
+### 5. Verify the Application
+
+Check liveness:
+
+```bash
+curl http://localhost:8000/api/v1/health
+```
+
+Check database readiness:
+
+```bash
+curl http://localhost:8000/api/v1/ready
+```
+
+FastAPI's generated API documentation is available at:
+
+```text
+http://localhost:8000/docs
+```
+
+---
+
+## Testing
+
+Run the complete test suite:
+
+```bash
+pytest
+```
+
+For concise output:
+
+```bash
+pytest -q
+```
+
+Run only unit tests:
+
+```bash
+pytest tests/unit
+```
+
+Run integration tests:
+
+```bash
+RUN_INTEGRATION_TESTS=1 pytest tests/integration -m integration
+```
+
+On Windows PowerShell:
+
+```powershell
+$env:RUN_INTEGRATION_TESTS="1"
+pytest tests/integration -m integration
+```
+
+Run linting:
+
+```bash
+ruff check .
+```
+
+Format the code:
+
+```bash
+ruff format .
+```
+
+---
+
+## Design Principles
+
+* Source data remains authoritative over generated LLM output.
+* Retrieval grounds LLM generation.
+* Source-derived information maintains provenance.
+* Deterministic business rules remain in application code.
+* LLM providers are accessed through abstractions.
+* Authentication and user ownership are enforced at application boundaries.
+* Observability is separated from business state.
+
+---
+
+## License
+
+This project is licensed under the MIT License.
+
+Built by [Dipanjan Saha](https://github.com/dipanjansahaa).
