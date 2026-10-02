@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user
 from app.api.v1.schemas.documents import DocumentResponse
+from app.core.config import settings
 from app.database.models.user import User
 from app.database.session import get_db
 from app.embeddings.factory import get_embedding_provider
@@ -57,7 +58,16 @@ async def create_document(
 ) -> DocumentResponse:
     """Upload and ingest a document."""
 
-    content = await file.read()
+    content = await file.read(settings.max_upload_size_bytes + 1)
+
+    if len(content) > settings.max_upload_size_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=(
+                "Uploaded file exceeds the maximum allowed size of "
+                f"{settings.max_upload_size_bytes} bytes."
+            ),
+        )
 
     try:
         document = await document_service.ingest(

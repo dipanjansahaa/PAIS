@@ -31,6 +31,13 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         index=True,
     )
 
+    auth_subject: Mapped[str | None] = mapped_column(
+        String(512),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
+
     display_name: Mapped[str] = mapped_column(
         String(255),
         nullable=False,

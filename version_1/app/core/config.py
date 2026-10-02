@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     llm_base_url: str = "http://localhost:11434"
     llm_temperature: float = 0.0
     llm_timeout: float = 60.0
+
+    auth_jwt_secret: str | None = None
+    auth_jwt_issuer: str | None = None
+    auth_jwt_audience: str | None = None
+
+    max_upload_size_bytes: int = 10 * 1024 * 1024
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -50,6 +56,10 @@ class Settings(BaseSettings):
     log_level: str = Field(
         default="INFO",
         description="Application logging level.",
+    )
+    max_upload_size_bytes: int = Field(
+        default=10 * 1024 * 1024,
+        description="Maximum allowed document upload size in bytes.",
     )
 
     @field_validator("app_name")
@@ -99,6 +109,32 @@ class Settings(BaseSettings):
                 f"LOG_LEVEL must be one of: {', '.join(sorted(allowed))}."
             )
         return value
+
+    @model_validator(mode="after")
+    def validate_security_configuration(self) -> "Settings":
+        """Reject insecure security configuration outside local development."""
+
+        if self.app_env in {"staging", "production"}:
+            if not self.auth_jwt_secret or not self.auth_jwt_secret.strip():
+                raise ValueError(
+                    "AUTH_JWT_SECRET must be configured in staging or production."
+                )
+
+            if self.database_url == (
+                "postgresql+asyncpg://pais:pais@localhost:5432/pais"
+            ):
+                raise ValueError(
+                    "DATABASE_URL must be explicitly configured in "
+                    "staging or production."
+                )
+
+            if "://pais:pais@" in self.database_url:
+                raise ValueError(
+                    "DATABASE_URL must not use the default development "
+                    "database credentials in staging or production."
+                )
+
+        return self
 
 
 @lru_cache

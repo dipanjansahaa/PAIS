@@ -10,6 +10,7 @@ from httpx import ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user, get_db
+from app.core.config import settings
 from app.database.models.user import User
 from app.main import app
 
@@ -134,3 +135,58 @@ async def test_create_duplicate_document_returns_conflict(
 
     assert "detail" in response_data
     assert "Document already exists" in response_data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_create_document_rejects_oversized_upload(
+    api_client: httpx.AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(settings, "max_upload_size_bytes", 10)
+
+    response = await api_client.post(
+        "/api/v1/documents",
+        files={
+            "file": (
+                "large.txt",
+                BytesIO(b"01234567890"),
+                "text/plain",
+            )
+        },
+        data={
+            "title": "Large Document",
+            "source_type": "text",
+        },
+    )
+
+    assert response.status_code == 413
+
+    response_data = response.json()
+
+    assert "detail" in response_data
+    assert "maximum allowed size" in response_data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_create_document_accepts_upload_at_size_limit(
+    api_client: httpx.AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(settings, "max_upload_size_bytes", 10)
+
+    response = await api_client.post(
+        "/api/v1/documents",
+        files={
+            "file": (
+                "small.txt",
+                BytesIO(b"0123456789"),
+                "text/plain",
+            )
+        },
+        data={
+            "title": "Small Document",
+            "source_type": "text",
+        },
+    )
+
+    assert response.status_code == 201

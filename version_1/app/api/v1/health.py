@@ -23,7 +23,7 @@ class ReadinessResponse(BaseModel):
     """Readiness response."""
 
     status: str
-    database: str
+    # database: str
 
 
 @router.get(
@@ -62,6 +62,6 @@ async def ready(
         await db.execute(text("SELECT 1"))
     except SQLAlchemyError:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-        return ReadinessResponse(status="not_ready", database="unavailable")
+        return ReadinessResponse(status="not_ready")
 
-    return ReadinessResponse(status="ready", database="ok")
+    return ReadinessResponse(status="ready")

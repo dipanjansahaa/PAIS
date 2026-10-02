@@ -89,3 +89,104 @@ def test_llm_settings():
     assert settings.llm_base_url == "http://localhost:11434"
     assert settings.llm_temperature == 0.0
     assert settings.llm_timeout == 60.0
+
+
+def test_development_allows_default_security_configuration() -> None:
+    """Development configuration may use local development defaults."""
+
+    settings = Settings(
+        app_env="development",
+        auth_jwt_secret=None,
+        database_url="postgresql+asyncpg://pais:pais@localhost:5432/pais",
+    )
+
+    assert settings.app_env == "development"
+
+
+def test_production_requires_jwt_secret() -> None:
+    """Production configuration must define a JWT secret."""
+
+    with pytest.raises(ValueError, match="AUTH_JWT_SECRET"):
+        Settings(
+            app_env="production",
+            auth_jwt_secret=None,
+            database_url=(
+                "postgresql+asyncpg://pais:secure-password@db:5432/pais"
+            ),
+        )
+
+
+def test_staging_requires_jwt_secret() -> None:
+    """Staging configuration must define a JWT secret."""
+
+    with pytest.raises(ValueError, match="AUTH_JWT_SECRET"):
+        Settings(
+            app_env="staging",
+            auth_jwt_secret="   ",
+            database_url=(
+                "postgresql+asyncpg://pais:secure-password@db:5432/pais"
+            ),
+        )
+
+
+def test_production_rejects_default_database_url() -> None:
+    """Production must not use the local development database URL."""
+
+    with pytest.raises(ValueError, match="DATABASE_URL"):
+        Settings(
+            app_env="production",
+            auth_jwt_secret="integration-test-secret-that-is-long-enough",
+            database_url=(
+                "postgresql+asyncpg://pais:pais@localhost:5432/pais"
+            ),
+        )
+
+
+def test_production_rejects_default_database_credentials() -> None:
+    """Production must not use the default pais/pais database credentials."""
+
+    with pytest.raises(ValueError, match="default development database credentials"):
+        Settings(
+            app_env="production",
+            auth_jwt_secret="integration-test-secret-that-is-long-enough",
+            database_url=(
+                "postgresql+asyncpg://pais:pais@db:5432/pais"
+            ),
+        )
+
+
+def test_production_accepts_explicit_secure_configuration() -> None:
+    """Production accepts explicitly configured security settings."""
+
+    settings = Settings(
+        app_env="production",
+        auth_jwt_secret="integration-test-secret-that-is-long-enough",
+        database_url=(
+            "postgresql+asyncpg://pais:secure-password@db:5432/pais"
+        ),
+    )
+
+    assert settings.app_env == "production"
+    assert settings.auth_jwt_secret == (
+        "integration-test-secret-that-is-long-enough"
+    )
+
+
+def test_upload_size_default() -> None:
+    """The default upload limit should be 10 MiB."""
+
+    settings = Settings()
+
+    assert settings.max_upload_size_bytes == 10 * 1024 * 1024
+
+
+def test_upload_size_loads_from_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The upload limit should be configurable through the environment."""
+
+    monkeypatch.setenv("MAX_UPLOAD_SIZE_BYTES", "5242880")
+
+    settings = Settings()
+
+    assert settings.max_upload_size_bytes == 5 * 1024 * 1024

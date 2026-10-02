@@ -50,7 +50,10 @@ async def test_ready_returns_ready_when_database_is_reachable() -> None:
     response = await request(app, "/ready")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ready", "database": "ok"}
+    assert response.json() == {
+        "status": "ready",
+        # "database": "ok"
+    }
     db.execute.assert_awaited_once()
 
 
@@ -68,6 +71,6 @@ async def test_ready_returns_503_when_database_is_unavailable() -> None:
     assert response.status_code == 503
     assert response.json() == {
         "status": "not_ready",
-        "database": "unavailable",
+        # "database": "unavailable",
     }
     db.execute.assert_awaited_once()
