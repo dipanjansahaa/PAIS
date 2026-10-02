@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
+# from functools import lru_cache
 
 from fastapi import APIRouter, Depends
+from app.core.config import settings
+from app.llm.tracked import TrackedLLMProvider
+from app.observability.models import ModelRunOperation
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user
@@ -29,13 +33,22 @@ router = APIRouter(
 )
 
 
-@lru_cache(maxsize=1)
-def get_query_service() -> QueryService:
+def get_query_service(
+    db_session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> QueryService:
     """Return the production query service."""
 
     search_service = get_search_service()
     context_builder = ContextBuilder()
-    llm_provider = get_llm_provider()
+
+    llm_provider = TrackedLLMProvider(
+        provider=get_llm_provider(),
+        user_id=current_user.id,
+        operation=ModelRunOperation.QUERY,
+        provider_name=settings.llm_provider,
+        session=db_session,
+    )
 
     return QueryService(
         search_service=search_service,

@@ -12,6 +12,7 @@ from app.database.models.document import Document
 from app.database.models.document_chunk import DocumentChunk
 from app.database.models.project import Project, ProjectSource
 from app.database.models.person import Person, PersonSource
+from app.database.models.model_run import ModelRun
 from app.database.models.risk import Risk, RiskSource
 from app.database.models.task import Task, TaskSource
 from app.database.models.user import User
@@ -27,6 +28,7 @@ __all__ = [
     "ProjectSource",
     "Person",
     "PersonSource",
+    "ModelRun",
     "Risk",
     "RiskSource",
     "Task",

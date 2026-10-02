@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from datetime import date
-from functools import lru_cache
+# from functools import lru_cache
 from typing import Annotated
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, Query
+from app.llm.tracked import TrackedLLMProvider
+from app.observability.models import ModelRunOperation
 from pydantic import AfterValidator
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -51,11 +53,19 @@ TimezoneName = Annotated[
 ]
 
 
-@lru_cache(maxsize=1)
-def get_daily_workflow_service() -> DailyWorkflowService:
+def get_daily_workflow_service(
+    db_session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DailyWorkflowService:
     """Return the production daily intelligence workflow."""
 
-    llm_provider = get_llm_provider()
+    llm_provider = TrackedLLMProvider(
+        provider=get_llm_provider(),
+        user_id=current_user.id,
+        operation=ModelRunOperation.DAILY_GENERATION,
+        provider_name=settings.llm_provider,
+        session=db_session,
+    )
 
     structured_llm = StructuredLLMProvider(
         llm_provider,
