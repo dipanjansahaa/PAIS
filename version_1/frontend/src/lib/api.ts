@@ -15,12 +15,64 @@ export interface DocumentResponse {
   project_id: string | null;
 }
 
+export interface SearchRequest {
+  query: string;
+  top_k?: number;
+  project_id?: string | null;
+  document_id?: string | null;
+  source_type?: string | null;
+}
+
+export interface SearchResult {
+  chunk_id: string;
+  document_id: string;
+  content: string;
+  score: number;
+}
+
+export interface SearchResponse {
+  query: string;
+  results: SearchResult[];
+}
+
+export interface QueryRequest {
+  query: string;
+  top_k?: number;
+  project_id?: string | null;
+  document_id?: string | null;
+  source_type?: string | null;
+  temperature?: number;
+}
+
+export interface QueryChunk {
+  citation_id: string;
+  chunk_id: string;
+  document_id: string;
+  content: string;
+  score: number;
+  metadata: Record<string, unknown>;
+}
+
+export interface QuerySource {
+  citation_id: string;
+  document_id: string;
+  chunks: QueryChunk[];
+}
+
+export interface QueryResponse {
+  query: string;
+  answer: string;
+  sources: QuerySource[];
+  model: string;
+  latency_ms: number;
+  truncated: boolean;
+}
+
 export class ApiError extends Error {
   readonly status: number;
 
   constructor(status: number, message: string) {
     super(message);
-
     this.name = "ApiError";
     this.status = status;
   }
@@ -73,7 +125,7 @@ async function request<T>(
     return undefined as T;
   }
 
-  return (await response.json()) as T;
+  return (await response.json()) as Promise<T>;
 }
 
 export function getHealth(): Promise<HealthResponse> {
@@ -99,5 +151,23 @@ export async function uploadDocument(
   return request<DocumentResponse>("/documents", {
     method: "POST",
     body: formData,
+  });
+}
+
+export async function searchDocuments(
+  requestData: SearchRequest,
+): Promise<SearchResponse> {
+  return request<SearchResponse>("/search", {
+    method: "POST",
+    body: JSON.stringify(requestData),
+  });
+}
+
+export async function queryDocuments(
+  requestData: QueryRequest,
+): Promise<QueryResponse> {
+  return request<QueryResponse>("/query", {
+    method: "POST",
+    body: JSON.stringify(requestData),
   });
 }

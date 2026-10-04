@@ -80,9 +80,15 @@ def test_embedding_settings() -> None:
     assert settings.embedding_normalize is True
 
 
-def test_llm_settings():
+def test_llm_settings() -> None:
     """Settings should expose the configured LLM values."""
-    settings = Settings()
+    settings = Settings(
+        llm_provider="ollama",
+        llm_model="llama3.2:3b",
+        llm_base_url="http://localhost:11434",
+        llm_temperature=0.0,
+        llm_timeout=60.0,
+    )
 
     assert settings.llm_provider == "ollama"
     assert settings.llm_model == "llama3.2:3b"

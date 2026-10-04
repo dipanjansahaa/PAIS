@@ -1,0 +1,2 @@
+PostgreSQL can function as a powerful vector database by using the open-source pgvector extension.
+This allows developers to store machine learning embeddings right alongside standard relational data, enabling fast, exact, and approximate nearest neighbor (ANN) searches using familiar SQL queries.
