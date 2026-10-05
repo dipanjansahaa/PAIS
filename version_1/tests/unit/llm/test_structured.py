@@ -25,6 +25,7 @@ class FakeLLMProvider:
     """Deterministic provider for structured generation tests."""
 
     content: str
+    received_json_mode: bool = False
 
     async def generate(
         self,
@@ -32,7 +33,10 @@ class FakeLLMProvider:
         *,
         temperature=0.0,
         response_schema=None,
+        json_mode=False,
     ):
+        self.received_json_mode = json_mode
+
         return LLMResponse(
             content=self.content,
             model="test-model",
@@ -76,6 +80,7 @@ async def test_structured_provider_passes_schema_to_llm():
             *,
             temperature=0.0,
             response_schema=None,
+            json_mode=False,
         ):
             self.schema = response_schema
 
@@ -137,3 +142,22 @@ async def test_structured_provider_rejects_schema_violation():
             [],
             schema=ExampleSchema,
         )
+
+
+@pytest.mark.asyncio
+async def test_structured_provider_passes_json_mode():
+    """JSON mode should be forwarded to the underlying provider."""
+
+    provider = FakeLLMProvider(
+        content='{"name": "test", "value": 42}',
+    )
+
+    structured = StructuredLLMProvider(provider)
+
+    await structured.generate(
+        [],
+        schema=ExampleSchema,
+        json_mode=True,
+    )
+
+    assert provider.received_json_mode is True

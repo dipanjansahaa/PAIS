@@ -8,6 +8,14 @@ import pytest
 from app.llm.models import Message
 from app.llm.providers.ollama import OllamaProvider
 
+from pydantic import BaseModel
+
+
+class ExampleSchema(BaseModel):
+    """Schema used to test Ollama structured output."""
+
+    name: str
+
 
 def test_ollama_provider_rejects_empty_model():
     """Provider should reject an empty model name."""
@@ -202,3 +210,67 @@ async def test_ollama_provider_rejects_negative_temperature():
             [Message(role="user", content="Question")],
             temperature=-0.1,
         )
+
+
+async def test_ollama_provider_uses_json_mode():
+    """Provider should request generic JSON output when json_mode is enabled."""
+
+    provider = OllamaProvider(
+        model="test-model",
+        base_url="http://localhost:11434",
+        timeout=60.0,
+    )
+
+    response = SimpleNamespace(
+        model="test-model",
+        message=SimpleNamespace(content='{"name": "test"}'),
+        prompt_eval_count=10,
+        eval_count=5,
+        done_reason="stop",
+    )
+
+    provider._client.chat = AsyncMock(return_value=response)
+
+    await provider.generate(
+        [Message(role="user", content="Return JSON")],
+        json_mode=True,
+    )
+
+    provider._client.chat.assert_awaited_once()
+
+    call_kwargs = provider._client.chat.call_args.kwargs
+
+    assert call_kwargs["format"] == "json"
+
+
+async def test_ollama_provider_uses_response_schema():
+    """Provider should pass the Pydantic schema to Ollama."""
+
+    provider = OllamaProvider(
+        model="test-model",
+        base_url="http://localhost:11434",
+        timeout=60.0,
+    )
+
+    response = SimpleNamespace(
+        model="test-model",
+        message=SimpleNamespace(
+            content='{"name": "test"}',
+        ),
+        prompt_eval_count=10,
+        eval_count=5,
+        done_reason="stop",
+    )
+
+    provider._client.chat = AsyncMock(return_value=response)
+
+    await provider.generate(
+        [Message(role="user", content="Return structured JSON")],
+        response_schema=ExampleSchema,
+    )
+
+    provider._client.chat.assert_awaited_once()
+
+    call_kwargs = provider._client.chat.call_args.kwargs
+
+    assert call_kwargs["format"] == ExampleSchema.model_json_schema()

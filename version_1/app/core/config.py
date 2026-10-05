@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     llm_model: str = "llama3.2:3b"
     llm_base_url: str = "http://localhost:11434"
     llm_temperature: float = 0.0
-    llm_timeout: float = 60.0
+    llm_timeout: float = 120.0
 
     auth_jwt_secret: str | None = None
     auth_jwt_issuer: str | None = None

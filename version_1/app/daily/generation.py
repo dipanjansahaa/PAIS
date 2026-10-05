@@ -29,6 +29,18 @@ Rules:
 - If a section has no information, return an empty list.
 - Keep each item concise and useful.
 - The summary should describe the day's actionable and informational state.
+
+Output requirements:
+- Return exactly one JSON object.
+- The JSON object must contain exactly these fields: summary, priorities, decisions, changes, risks.
+- summary must be a non-empty string.
+- priorities must be an array of strings.
+- decisions must be an array of strings.
+- changes must be an array of strings.
+- risks must be an array of strings.
+- If a section has no information, return an empty array.
+- Do not omit any field.
+- Do not wrap the JSON in Markdown or code fences.
 """
 
 
@@ -36,10 +48,10 @@ class DailyBrief(BaseModel):
     """Structured daily intelligence generated from PAIS context."""
 
     summary: str = Field(min_length=1)
-    priorities: list[str] = Field(default_factory=list)
-    decisions: list[str] = Field(default_factory=list)
-    changes: list[str] = Field(default_factory=list)
-    risks: list[str] = Field(default_factory=list)
+    priorities: list[str]
+    decisions: list[str]
+    changes: list[str]
+    risks: list[str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,6 +88,10 @@ class DailyGenerationService:
                         "No actionable items or recent intelligence "
                         "were found for this day."
                     ),
+                    priorities=[],
+                    decisions=[],
+                    changes=[],
+                    risks=[],
                 ),
                 model=None,
                 latency_ms=None,
@@ -87,6 +103,7 @@ class DailyGenerationService:
             messages,
             schema=DailyBrief,
             temperature=temperature,
+            json_mode=True,
         )
 
         return self._build_result(

@@ -54,6 +54,7 @@ class TrackedLLMProvider(LLMProvider):
         *,
         temperature: float = 0.0,
         response_schema: type | None = None,
+        json_mode: bool = False,
     ) -> LLMResponse:
         """Generate a response and record its execution metadata."""
 
@@ -65,6 +66,7 @@ class TrackedLLMProvider(LLMProvider):
                 messages,
                 temperature=temperature,
                 response_schema=response_schema,
+                json_mode=json_mode,
             )
         except Exception as exc:
             latency_ms = (

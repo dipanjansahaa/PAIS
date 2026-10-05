@@ -273,7 +273,7 @@ a {
 -------------------------------------------------- */
 
 .page-content {
-  padding: 2.5rem;
+  padding: 2rem;
 }
 
 .page {
@@ -466,7 +466,7 @@ a {
   }
 
   .page-content {
-    padding: 1.5rem;
+    padding: 1rem 1.25rem;
   }
 
   .header-status-group {
@@ -1431,5 +1431,187 @@ a {
 
   .query-source-header {
     gap: 0.5rem;
+  }
+}
+
+/* --------------------------------------------------
+   Daily Intelligence
+-------------------------------------------------- */
+
+.daily-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.daily-page .page-header {
+  max-width: 820px;
+}
+
+.daily-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.daily-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #283441;
+  border-radius: 999px;
+  background: #111820;
+  color: #8f9baa;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+/* Daily content */
+
+.daily-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.daily-card {
+  min-width: 0;
+  padding: 1.35rem;
+  border: 1px solid #202832;
+  border-radius: 12px;
+  background: #0e141b;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 10%);
+}
+
+.daily-card .section-header {
+  margin-bottom: 1rem;
+}
+
+.daily-card .section-header h3 {
+  font-size: 0.95rem;
+}
+
+.daily-card .section-header p {
+  max-width: 520px;
+  line-height: 1.5;
+}
+
+.daily-summary-card {
+  padding: 1.5rem;
+}
+
+.daily-summary {
+  max-width: 900px;
+  margin: 0;
+  color: #dce3ea;
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+/* Daily sections */
+
+.daily-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.daily-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.daily-list li {
+  padding-left: 0.15rem;
+  color: #c8d0d9;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.daily-list li::marker {
+  color: #687583;
+}
+
+/* Section-specific emphasis */
+
+.daily-priorities-card {
+  border-color: #2c3946;
+}
+
+.daily-priorities-card .section-header h3 {
+  color: #e5e7eb;
+}
+
+.daily-decisions-card {
+  border-color: #293742;
+}
+
+.daily-changes-card {
+  border-color: #29343f;
+}
+
+.daily-risks-card {
+  border-color: #4a3636;
+}
+
+.daily-risks-card .section-header h3 {
+  color: #e5d7d7;
+}
+
+.daily-risks-card .daily-list li::marker {
+  color: #d08b8b;
+}
+
+/* Generation metadata */
+
+.daily-generation-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  padding: 0.25rem 0.1rem 0;
+  color: #687583;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.daily-generation-meta span {
+  overflow-wrap: anywhere;
+}
+
+/* Responsive Daily layout */
+
+@media (max-width: 900px) {
+  .daily-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .daily-page {
+    gap: 1.25rem;
+  }
+
+  .daily-card,
+  .daily-summary-card {
+    padding: 1.15rem;
+  }
+
+  .daily-grid {
+    gap: 0.85rem;
+  }
+
+  .daily-list {
+    padding-left: 1.1rem;
+  }
+
+  .daily-generation-meta {
+    flex-direction: column;
+    gap: 0.4rem;
   }
 }

@@ -36,6 +36,7 @@ class FakeStructuredLLM:
         self.messages = []
         self.schema = None
         self.temperature = None
+        self.json_mode = None
 
     async def generate(
         self,
@@ -43,10 +44,12 @@ class FakeStructuredLLM:
         *,
         schema,
         temperature=0.0,
+        json_mode=False,
     ):
         self.messages.append(messages)
         self.schema = schema
         self.temperature = temperature
+        self.json_mode = json_mode
 
         return (
             self.brief,
@@ -109,6 +112,10 @@ async def test_generation_returns_deterministic_empty_result() -> None:
     llm = FakeStructuredLLM(
         DailyBrief(
             summary="Should not be used.",
+            priorities=[],
+            decisions=[],
+            changes=[],
+            risks=[],
         )
     )
 
@@ -227,6 +234,10 @@ async def test_generation_passes_daily_brief_schema() -> None:
     llm = FakeStructuredLLM(
         DailyBrief(
             summary="Daily summary.",
+            priorities=[],
+            decisions=[],
+            changes=[],
+            risks=[],
         )
     )
 
@@ -246,10 +257,41 @@ async def test_generation_passes_daily_brief_schema() -> None:
 
 
 @pytest.mark.asyncio
+async def test_generation_enables_json_mode() -> None:
+    llm = FakeStructuredLLM(
+        DailyBrief(
+            summary="Daily summary.",
+            priorities=[],
+            decisions=[],
+            changes=[],
+            risks=[],
+        )
+    )
+
+    service = DailyGenerationService(
+        structured_llm=llm,
+    )
+
+    await service.generate(
+        _context(
+            prioritized_items=(
+                _priority_item(),
+            ),
+        ),
+    )
+
+    assert llm.json_mode is True
+
+
+@pytest.mark.asyncio
 async def test_generation_passes_temperature() -> None:
     llm = FakeStructuredLLM(
         DailyBrief(
             summary="Daily summary.",
+            priorities=[],
+            decisions=[],
+            changes=[],
+            risks=[],
         )
     )
 
@@ -274,6 +316,10 @@ async def test_generation_returns_provider_metadata() -> None:
     llm = FakeStructuredLLM(
         DailyBrief(
             summary="Daily summary.",
+            priorities=[],
+            decisions=[],
+            changes=[],
+            risks=[],
         )
     )
 
@@ -334,6 +380,10 @@ async def test_generation_does_not_call_llm_for_only_empty_context() -> None:
     llm = FakeStructuredLLM(
         DailyBrief(
             summary="Should not be generated.",
+            priorities=[],
+            decisions=[],
+            changes=[],
+            risks=[],
         )
     )
 
@@ -354,12 +404,8 @@ def test_daily_brief_requires_summary() -> None:
         DailyBrief(summary="")
 
 
-def test_daily_brief_allows_empty_sections() -> None:
-    brief = DailyBrief(
-        summary="Nothing requires immediate action.",
-    )
-
-    assert brief.priorities == []
-    assert brief.decisions == []
-    assert brief.changes == []
-    assert brief.risks == []
+def test_daily_brief_requires_all_sections() -> None:
+    with pytest.raises(ValueError):
+        DailyBrief(
+            summary="Nothing requires immediate action.",
+        )

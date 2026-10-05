@@ -36,6 +36,7 @@ class StructuredLLMProvider:
         *,
         schema: type[StructuredModel],
         temperature: float = 0.0,
+        json_mode: bool = False,
     ) -> tuple[StructuredModel, LLMResponse]:
         """Generate and validate structured LLM output."""
 
@@ -43,6 +44,7 @@ class StructuredLLMProvider:
             messages,
             temperature=temperature,
             response_schema=schema,
+            json_mode=json_mode,
         )
 
         try:

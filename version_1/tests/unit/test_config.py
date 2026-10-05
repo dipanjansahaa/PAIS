@@ -87,14 +87,14 @@ def test_llm_settings() -> None:
         llm_model="llama3.2:3b",
         llm_base_url="http://localhost:11434",
         llm_temperature=0.0,
-        llm_timeout=60.0,
+        llm_timeout=120.0,
     )
 
     assert settings.llm_provider == "ollama"
     assert settings.llm_model == "llama3.2:3b"
     assert settings.llm_base_url == "http://localhost:11434"
     assert settings.llm_temperature == 0.0
-    assert settings.llm_timeout == 60.0
+    assert settings.llm_timeout == 120.0
 
 
 def test_development_allows_default_security_configuration() -> None:

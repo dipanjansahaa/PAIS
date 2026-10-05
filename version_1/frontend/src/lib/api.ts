@@ -108,14 +108,31 @@ async function request<T>(
 
     try {
       const body = (await response.json()) as {
-        detail?: string;
+        detail?: unknown;
       };
 
-      if (body.detail) {
+      if (typeof body.detail === "string") {
         message = body.detail;
+      } else if (Array.isArray(body.detail)) {
+        message = body.detail
+          .map((item) => {
+            if (
+              typeof item === "object" &&
+              item !== null &&
+              "msg" in item &&
+              typeof item.msg === "string"
+            ) {
+              return item.msg;
+            }
+
+            return JSON.stringify(item);
+          })
+          .join("; ");
+      } else if (body.detail !== undefined) {
+        message = JSON.stringify(body.detail);
       }
     } catch {
-      // Keep the default HTTP error message.
+      // Keep default.
     }
 
     throw new ApiError(response.status, message);
@@ -169,5 +186,36 @@ export async function queryDocuments(
   return request<QueryResponse>("/query", {
     method: "POST",
     body: JSON.stringify(requestData),
+  });
+}
+
+export interface DailyResponse {
+  day: string;
+  timezone_name: string;
+  summary: string;
+  priorities: string[];
+  decisions: string[];
+  changes: string[];
+  risks: string[];
+  model: string | null;
+  latency_ms: number | null;
+}
+
+export interface DailyRequest {
+  day: string;
+  timezone_name: string;
+}
+
+export async function getDaily(
+  requestData: DailyRequest,
+  signal?: AbortSignal,
+): Promise<DailyResponse> {
+  const params = new URLSearchParams({
+    day: requestData.day,
+    timezone_name: requestData.timezone_name,
+  });
+
+  return request<DailyResponse>(`/daily?${params.toString()}`, {
+    signal,
   });
 }

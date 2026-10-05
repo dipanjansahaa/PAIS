@@ -47,6 +47,7 @@ class OllamaProvider(LLMProvider):
         *,
         temperature: float = 0.0,
         response_schema: type | None = None,
+        json_mode: bool = False,
     ) -> LLMResponse:
         """Generate a response using Ollama."""
 
@@ -73,7 +74,9 @@ class OllamaProvider(LLMProvider):
             },
         }
 
-        if response_schema is not None:
+        if json_mode:
+            request_kwargs["format"] = "json"
+        elif response_schema is not None:
             request_kwargs["format"] = response_schema.model_json_schema()
 
         started_at = perf_counter()

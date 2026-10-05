@@ -16,6 +16,7 @@ class LLMProvider(Protocol):
         *,
         temperature: float = 0.0,
         response_schema: type | None = None,
+        json_mode: bool = False,
     ) -> LLMResponse:
         """Generate a response from the supplied messages."""
         ...
