@@ -10,8 +10,14 @@ function ErrorState({
   onRetry,
 }: ErrorStateProps) {
   return (
-    <div className="feedback-state feedback-error">
-      <div className="feedback-icon feedback-icon-error">
+    <div
+      className="feedback-state feedback-error"
+      role="alert"
+    >
+      <div
+        className="feedback-icon feedback-icon-error"
+        aria-hidden="true"
+      >
         !
       </div>
 

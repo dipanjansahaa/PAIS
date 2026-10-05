@@ -24,6 +24,10 @@ function QueryPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (isQuerying) {
+      return;
+    }
+
     setErrorMessage(null);
     setResponse(null);
 
@@ -306,11 +310,10 @@ function QueryPage() {
               )}
             </div>
           ) : (
-            <div className="query-result-empty">
-              <p>
-                Ask a question to see a grounded answer here.
-              </p>
-            </div>
+            <EmptyState
+              title="No answer yet"
+              message="Ask a question to see a grounded answer here."
+            />
           )}
         </div>
       </div>

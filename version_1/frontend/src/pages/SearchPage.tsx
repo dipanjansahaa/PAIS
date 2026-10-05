@@ -5,6 +5,7 @@ import {
   searchDocuments,
   type SearchResponse,
 } from "../lib/api";
+import EmptyState from "../components/feedback/EmptyState";
 import ErrorState from "../components/feedback/ErrorState";
 import LoadingState from "../components/feedback/LoadingState";
 
@@ -23,6 +24,10 @@ function SearchPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (isSearching) {
+      return;
+    }
 
     setErrorMessage(null);
     setSearchResponse(null);
@@ -159,12 +164,10 @@ function SearchPage() {
     </div>
 
     {searchResponse.results.length === 0 ? (
-      <div className="search-results-empty">
-        <p className="feedback-title">No results found</p>
-        <p className="feedback-message">
-          No matching content was found for this query.
-        </p>
-      </div>
+      <EmptyState
+        title="No results found"
+        message="No matching content was found for this query."
+      />
     ) : (
       <div className="search-result-list">
         {searchResponse.results.map((result, index) => (

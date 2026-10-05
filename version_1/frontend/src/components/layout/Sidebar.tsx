@@ -2,6 +2,10 @@ import { NavLink } from "react-router-dom";
 
 const navigationItems = [
   {
+    label: "Intelligence",
+    path: "/intelligence",
+  },
+  {
     label: "Daily",
     path: "/daily",
   },

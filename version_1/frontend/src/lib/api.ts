@@ -78,6 +78,77 @@ export class ApiError extends Error {
   }
 }
 
+function getStatusMessage(status: number): string {
+  switch (status) {
+    case 401:
+      return "Your session is no longer valid. Please sign in again.";
+
+    case 403:
+      return "You do not have permission to perform this action.";
+
+    case 404:
+      return "The requested resource was not found.";
+
+    case 422:
+      return "The request contains invalid data.";
+
+    case 429:
+      return "Too many requests. Please wait a moment and try again.";
+
+    default:
+      if (status >= 500) {
+        return "PAIS is temporarily unavailable. Please try again.";
+      }
+
+      return `Request failed with status ${status}.`;
+  }
+}
+
+async function getApiErrorMessage(
+  response: Response,
+): Promise<string> {
+  const fallbackMessage = getStatusMessage(response.status);
+
+  try {
+    const body = (await response.json()) as {
+      detail?: unknown;
+    };
+
+    if (typeof body.detail === "string" && body.detail.trim()) {
+      return body.detail;
+    }
+
+    if (Array.isArray(body.detail)) {
+      const messages = body.detail
+        .map((item) => {
+          if (
+            typeof item === "object" &&
+            item !== null &&
+            "msg" in item &&
+            typeof item.msg === "string"
+          ) {
+            return item.msg;
+          }
+
+          return JSON.stringify(item);
+        })
+        .filter(Boolean);
+
+      if (messages.length > 0) {
+        return messages.join("; ");
+      }
+    }
+
+    if (body.detail !== undefined) {
+      return JSON.stringify(body.detail);
+    }
+  } catch {
+    // Use the status-based fallback when the response is not JSON.
+  }
+
+  return fallbackMessage;
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -98,42 +169,26 @@ async function request<T>(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_PREFIX}${path}`, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_PREFIX}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw error;
+    }
+
+    throw new ApiError(
+      0,
+      "Unable to reach the PAIS API. Check that the backend is running and try again.",
+    );
+  }
 
   if (!response.ok) {
-    let message = `Request failed with status ${response.status}`;
-
-    try {
-      const body = (await response.json()) as {
-        detail?: unknown;
-      };
-
-      if (typeof body.detail === "string") {
-        message = body.detail;
-      } else if (Array.isArray(body.detail)) {
-        message = body.detail
-          .map((item) => {
-            if (
-              typeof item === "object" &&
-              item !== null &&
-              "msg" in item &&
-              typeof item.msg === "string"
-            ) {
-              return item.msg;
-            }
-
-            return JSON.stringify(item);
-          })
-          .join("; ");
-      } else if (body.detail !== undefined) {
-        message = JSON.stringify(body.detail);
-      }
-    } catch {
-      // Keep default.
-    }
+    const message = await getApiErrorMessage(response);
 
     throw new ApiError(response.status, message);
   }
@@ -142,7 +197,7 @@ async function request<T>(
     return undefined as T;
   }
 
-  return (await response.json()) as Promise<T>;
+  return (await response.json()) as T;
 }
 
 export function getHealth(): Promise<HealthResponse> {
@@ -216,6 +271,78 @@ export async function getDaily(
   });
 
   return request<DailyResponse>(`/daily?${params.toString()}`, {
+    signal,
+  });
+}
+
+export interface IntelligenceTask {
+  id: string;
+  project_id: string | null;
+  commitment_id: string | null;
+  description: string;
+  owner: string | null;
+  due_at: string | null;
+  priority: string | null;
+  status: string;
+  source_chunk_ids: string[];
+}
+
+export interface IntelligenceCommitment {
+  id: string;
+  project_id: string | null;
+  description: string;
+  owner: string | null;
+  deadline_at: string | null;
+  status: string;
+  source_chunk_ids: string[];
+}
+
+export interface IntelligenceDecision {
+  id: string;
+  project_id: string | null;
+  title: string;
+  description: string;
+  decision_date: string | null;
+  status: string;
+  source_chunk_ids: string[];
+}
+
+export interface IntelligenceProject {
+  id: string;
+  name: string;
+  description: string | null;
+  status: string;
+  source_chunk_ids: string[];
+}
+
+export interface IntelligencePerson {
+  id: string;
+  name: string;
+  email: string | null;
+  source_chunk_ids: string[];
+}
+
+export interface IntelligenceRisk {
+  id: string;
+  title: string;
+  description: string | null;
+  severity: string | null;
+  source_chunk_ids: string[];
+}
+
+export interface IntelligenceResponse {
+  tasks: IntelligenceTask[];
+  commitments: IntelligenceCommitment[];
+  decisions: IntelligenceDecision[];
+  projects: IntelligenceProject[];
+  people: IntelligencePerson[];
+  risks: IntelligenceRisk[];
+}
+
+export async function getIntelligence(
+  signal?: AbortSignal,
+): Promise<IntelligenceResponse> {
+  return request<IntelligenceResponse>("/intelligence", {
     signal,
   });
 }

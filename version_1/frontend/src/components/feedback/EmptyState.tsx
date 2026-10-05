@@ -9,11 +9,14 @@ function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className="feedback-state feedback-empty">
-      <div className="feedback-icon feedback-icon-empty">
+      <div
+        className="feedback-icon feedback-icon-empty"
+        aria-hidden="true"
+      >
         —
       </div>
 
-      <div>
+      <div className="feedback-content">
         <p className="feedback-title">{title}</p>
 
         {message && (

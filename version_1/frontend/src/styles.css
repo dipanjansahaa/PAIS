@@ -318,6 +318,7 @@ a {
   gap: 0.9rem;
 
   width: 100%;
+  margin-top: 1rem;
   padding: 1rem;
 
   border: 1px solid #202832;
@@ -398,9 +399,21 @@ a {
   cursor: pointer;
 
   font-size: 0.8rem;
+  transition: background 120ms ease, border-color 120ms ease;
+
+  /* Keyboard focus */
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  .nav-item:focus-visible {
+    outline: 2px solid #64748b;
+    outline-offset: 2px;
+  }
 }
 
 .feedback-action:hover {
+  border-color: #465667;
   background: #1b2530;
 }
 
@@ -471,6 +484,24 @@ a {
 
   .header-status-group {
     gap: 0.75rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .documents-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .intelligence-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .query-layout {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -603,6 +634,14 @@ a {
 .primary-button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  .nav-item:focus-visible {
+    outline: 2px solid #64748b;
+    outline-offset: 2px;
+  }
 }
 
 .document-result {
@@ -1613,5 +1652,198 @@ a {
   .daily-generation-meta {
     flex-direction: column;
     gap: 0.4rem;
+  }
+}
+
+/* --------------------------------------------------
+   Structured Intelligence
+-------------------------------------------------- */
+
+.intelligence-page {
+  max-width: 1200px;
+}
+
+.intelligence-page .page-header {
+  margin-bottom: 2rem;
+}
+
+.intelligence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.intelligence-card {
+  min-width: 0;
+
+  padding: 1.5rem;
+
+  border: 1px solid #202832;
+  border-radius: 12px;
+
+  background: #0e141b;
+
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+}
+
+.intelligence-card .section-header {
+  margin-bottom: 1.25rem;
+}
+
+.intelligence-card .section-header h3 {
+  margin: 0;
+
+  color: #dce3ea;
+
+  font-size: 1rem;
+}
+
+.intelligence-card .section-header p {
+  margin: 0.4rem 0 0;
+
+  color: #687583;
+
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.intelligence-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 28px;
+  height: 28px;
+
+  padding: 0 0.5rem;
+
+  border: 1px solid #2b3642;
+  border-radius: 7px;
+
+  background: #151d26;
+  color: #aeb8c3;
+
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.intelligence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.intelligence-item {
+  min-width: 0;
+
+  padding: 1rem;
+
+  border: 1px solid #1f2933;
+  border-radius: 9px;
+
+  background: #111820;
+}
+
+.intelligence-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.intelligence-item-header h4 {
+  min-width: 0;
+
+  margin: 0;
+
+  color: #e5e7eb;
+
+  font-size: 0.9rem;
+  line-height: 1.45;
+
+  overflow-wrap: anywhere;
+}
+
+.intelligence-status {
+  flex: 0 0 auto;
+
+  padding: 0.3rem 0.5rem;
+
+  border: 1px solid #2b3642;
+  border-radius: 6px;
+
+  background: #18212b;
+  color: #94a3b8;
+
+  font-size: 0.65rem;
+  font-weight: 600;
+
+  text-transform: capitalize;
+}
+
+.intelligence-item-description {
+  margin: 0.75rem 0 0;
+
+  color: #9aa6b3;
+
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.intelligence-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+
+  margin-top: 0.8rem;
+
+  color: #788594;
+
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.intelligence-sources {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-top: 1rem;
+  padding-top: 0.7rem;
+
+  border-top: 1px solid #1b242d;
+
+  color: #687583;
+
+  font-size: 0.7rem;
+}
+
+.intelligence-sources span:last-child {
+  color: #8f9baa;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .intelligence-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .intelligence-card {
+    padding: 1.15rem;
+  }
+
+  .intelligence-item-header {
+    flex-direction: column;
+  }
+
+  .intelligence-status {
+    align-self: flex-start;
+  }
+
+  .intelligence-item-meta {
+    flex-direction: column;
+    gap: 0.35rem;
   }
 }

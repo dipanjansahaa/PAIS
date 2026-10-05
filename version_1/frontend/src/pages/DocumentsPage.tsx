@@ -5,6 +5,7 @@ import {
   uploadDocument,
   type DocumentResponse,
 } from "../lib/api";
+import EmptyState from "../components/feedback/EmptyState";
 import ErrorState from "../components/feedback/ErrorState";
 import LoadingState from "../components/feedback/LoadingState";
 
@@ -20,6 +21,10 @@ function DocumentsPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (isUploading) {
+      return;
+    }
 
     setErrorMessage(null);
     setUploadedDocument(null);
@@ -205,9 +210,10 @@ function DocumentsPage() {
               </dl>
             </div>
           ) : (
-            <div className="document-result-empty">
-              <p>No document uploaded yet.</p>
-            </div>
+            <EmptyState
+              title="No document uploaded yet"
+              message="Upload a document to see its details here."
+            />
           )}
         </div>
       </div>

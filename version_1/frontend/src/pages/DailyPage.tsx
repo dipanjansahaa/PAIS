@@ -37,49 +37,50 @@ function DailyPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    let cancelled = false;
+  async function loadDaily(signal?: AbortSignal) {
+    setIsLoading(true);
+    setErrorMessage(null);
 
-    async function loadDaily() {
-      setIsLoading(true);
-      setErrorMessage(null);
+    try {
+      const result = await getDaily(
+        {
+          day: getTodayDate(),
+          timezone_name: getLocalTimezone(),
+        },
+        signal,
+      );
 
-      try {
-        const result = await getDaily(
-          {
-            day: getTodayDate(),
-            timezone_name: getLocalTimezone(),
-          },
-          controller.signal,
-        );
+      if (!signal?.aborted) {
+        setDaily(result);
+      }
+    } catch (error) {
+      if (
+        signal?.aborted ||
+        (error instanceof DOMException && error.name === "AbortError")
+      ) {
+        return;
+      }
 
-        if (!cancelled) {
-          setDaily(result);
-        }
-      } catch (error) {
-        if (cancelled || controller.signal.aborted) {
-          return;
-        }
-
-        if (error instanceof ApiError) {
-          setErrorMessage(error.message);
-        } else if (error instanceof Error) {
-          setErrorMessage(error.message);
-        } else {
-          setErrorMessage("Unable to load daily intelligence.");
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
+      if (error instanceof ApiError) {
+        setErrorMessage(error.message);
+      } else if (error instanceof Error) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("Unable to load daily intelligence.");
+      }
+    } finally {
+      if (!signal?.aborted) {
+        setIsLoading(false);
       }
     }
+  }
 
-    void loadDaily();
+  useEffect(() => {
+    const controller = new AbortController();
+
+    void loadDaily(controller.signal);
 
     return () => {
-      cancelled = true;
       controller.abort();
     };
   }, []);
@@ -116,6 +117,9 @@ function DailyPage() {
         <ErrorState
           title="Daily intelligence failed"
           message={errorMessage}
+          onRetry={() => {
+            void loadDaily();
+          }}
         />
       </section>
     );
