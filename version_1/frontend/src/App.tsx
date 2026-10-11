@@ -15,14 +15,12 @@ function App() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/query" element={<QueryPage />} />
         <Route path="/documents" element={<DocumentsPage />} />
-        <Route
-          path="/intelligence"
-          element={<IntelligencePage />}
+        <Route path="/intelligence" element={<IntelligencePage />}
         />
 
         <Route
           path="*"
-          element={<Navigate to="/daily" replace />}
+          element={<Navigate to="/intelligence" replace />}
         />
       </Route>
     </Routes>

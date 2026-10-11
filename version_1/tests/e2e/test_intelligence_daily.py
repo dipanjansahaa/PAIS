@@ -89,8 +89,9 @@ class FakeStructuredExtractionLLM:
         self,
         messages,
         *,
-        schema,
+        schema=None,
         temperature=0.0,
+        json_mode=False,
     ):
         self.messages.append(messages)
 
@@ -200,6 +201,7 @@ class FakeDailyLLM:
         *,
         temperature=0.0,
         response_schema=None,
+        json_mode=False,
     ) -> LLMResponse:
         self.messages.append(messages)
 

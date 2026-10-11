@@ -31,6 +31,7 @@ class FakeLLMProvider:
         *,
         temperature: float = 0.0,
         response_schema: type | None = None,
+        json_mode: bool = False,
     ) -> LLMResponse:
         if self.error is not None:
             raise self.error

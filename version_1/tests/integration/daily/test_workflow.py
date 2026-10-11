@@ -37,6 +37,7 @@ class FakeStructuredLLM:
         *,
         schema,
         temperature=0.0,
+        json_mode=False,
     ):
         self.call_count += 1
         self.messages.append(messages)
@@ -124,6 +125,7 @@ async def test_daily_workflow_runs_end_to_end(
         DailyBrief(
             summary="Deployment requires attention.",
             priorities=["Review deployment."],
+            decisions=[],
             changes=["PAIS was updated."],
             risks=["Deployment may be delayed."],
         )
@@ -248,6 +250,10 @@ async def test_daily_workflow_preserves_user_isolation(
     llm = FakeStructuredLLM(
         DailyBrief(
             summary="Daily intelligence.",
+            priorities=[],
+            decisions=[],
+            changes=[],
+            risks=[],
         )
     )
 
@@ -303,6 +309,10 @@ async def test_daily_workflow_skips_llm_for_empty_day(
     llm = FakeStructuredLLM(
         DailyBrief(
             summary="Should not be generated.",
+            priorities=[],
+            decisions=[],
+            changes=[],
+            risks=[],
         )
     )
 
