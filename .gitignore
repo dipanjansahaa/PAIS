@@ -1,0 +1,33 @@
+# Local secrets and environment
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Frontend artifacts
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# Local databases and logs
+*.sqlite
+*.sqlite3
+*.db
+*.log
