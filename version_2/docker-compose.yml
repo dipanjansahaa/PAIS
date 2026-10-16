@@ -1,18 +1,22 @@
+
+name: pais-v2
+
 services:
   db:
     image: pgvector/pgvector:pg16
-    container_name: pais-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-pais}
-      POSTGRES_USER: ${POSTGRES_USER:-pais}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pais}
+      POSTGRES_DB: ${POSTGRES_DB:-pais_v2}
+      POSTGRES_USER: ${POSTGRES_USER:-pais_v2}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pais_v2}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
-      - pais_postgres_data:/var/lib/postgresql/data
+      - pais_v2_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pais} -d ${POSTGRES_DB:-pais}"]
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
       interval: 5s
       timeout: 5s
       retries: 10
@@ -22,12 +26,11 @@ services:
     build:
       context: .
       dockerfile: docker/api/Dockerfile
-    container_name: pais-api
     restart: unless-stopped
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-pais_v2}:${POSTGRES_PASSWORD:-pais_v2}@db:5432/${POSTGRES_DB:-pais_v2}
       LLM_BASE_URL: http://host.docker.internal:11434
     volumes:
       - .:/app
@@ -35,8 +38,14 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "${API_PORT:-8000}:8000"
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+      - "${API_PORT:-8001}:8000"
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
 
 volumes:
-  pais_postgres_data:
+  pais_v2_postgres_data:
