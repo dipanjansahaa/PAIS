@@ -14,6 +14,11 @@ from app.core.config import settings
 from app.database.models.user import User
 from app.main import app
 
+from unittest.mock import AsyncMock
+
+from app.api.v1.documents import get_intelligence_workflow_service
+from app.intelligence.persistence_service import IntelligencePersistenceResult
+
 
 @pytest_asyncio.fixture
 async def api_client(db_session: AsyncSession):
@@ -190,3 +195,17 @@ async def test_create_document_accepts_upload_at_size_limit(
     )
 
     assert response.status_code == 201
+
+
+@pytest.mark.asyncio
+async def override_intelligence_workflow():
+    workflow = AsyncMock()
+    workflow.extract_and_persist.return_value = (
+        IntelligencePersistenceResult()
+    )
+    return workflow
+
+
+app.dependency_overrides[
+    get_intelligence_workflow_service
+] = override_intelligence_workflow
