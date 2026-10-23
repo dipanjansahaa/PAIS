@@ -19,6 +19,21 @@ from unittest.mock import AsyncMock
 from app.api.v1.documents import get_intelligence_workflow_service
 from app.intelligence.persistence_service import IntelligencePersistenceResult
 
+from sqlalchemy import select
+
+from app.database.models.document import Document
+from app.database.models.document_chunk import DocumentChunk
+from app.api.v1.documents import get_intelligence_workflow_service
+
+
+@pytest_asyncio.fixture
+async def override_intelligence_workflow():
+    workflow = AsyncMock()
+    workflow.extract_and_persist.return_value = (
+        IntelligencePersistenceResult()
+    )
+    return workflow
+
 
 @pytest_asyncio.fixture
 async def api_client(db_session: AsyncSession):
@@ -32,7 +47,7 @@ async def api_client(db_session: AsyncSession):
     )
 
     db_session.add(test_user)
-    await db_session.flush()
+    await db_session.commit()
 
     async def override_get_db():
         yield db_session
@@ -42,20 +57,24 @@ async def api_client(db_session: AsyncSession):
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_current_user] = override_get_current_user
+    app.dependency_overrides[
+        get_intelligence_workflow_service
+    ] = override_intelligence_workflow
 
     transport = ASGITransport(app=app)
 
-    async with httpx.AsyncClient(
-        transport=transport,
-        base_url="http://testserver",
-    ) as client:
-        yield client
+    try:
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            yield client
+    finally:
+        app.dependency_overrides.clear()
 
-    app.dependency_overrides.clear()
-
-    # Clean up data created during the test.
-    await db_session.delete(test_user)
-    await db_session.commit()
+        # Clean up data created during the test.
+        await db_session.delete(test_user)
+        await db_session.commit()
 
 
 @pytest.mark.asyncio
@@ -209,3 +228,62 @@ async def override_intelligence_workflow():
 app.dependency_overrides[
     get_intelligence_workflow_service
 ] = override_intelligence_workflow
+
+
+@pytest.mark.asyncio
+async def test_upload_rolls_back_when_intelligence_extraction_fails(
+    api_client,
+    db_session,
+):
+    """A failed extraction must not leave an uploaded document behind."""
+
+    unique_marker = uuid4().hex
+    filename = f"rollback-test-{unique_marker}.txt"
+    title = f"Rollback Test {unique_marker}"
+    content = f"Review the deployment plan. Test marker: {unique_marker}"
+
+    failing_workflow = AsyncMock()
+    failing_workflow.extract_and_persist.side_effect = RuntimeError(
+        "Simulated extraction failure"
+    )
+
+    # Override the workflow specifically for this test.
+    app.dependency_overrides[
+        get_intelligence_workflow_service
+    ] = lambda: failing_workflow
+
+    try:
+        response = await api_client.post(
+            "/api/v1/documents",
+            data={
+                "title": title,
+                "source_type": "notes",
+            },
+            files={
+                "file": (
+                    filename,
+                    content.encode("utf-8"),
+                    "text/plain",
+                )
+            },
+        )
+    finally:
+        app.dependency_overrides.pop(
+            get_intelligence_workflow_service,
+            None,
+        )
+
+    assert response.status_code == 502, response.text
+    assert "upload was rolled back" in response.json()["detail"].lower()
+
+    document = await db_session.scalar(
+        select(Document).where(Document.file_name == filename)
+    )
+    assert document is None
+
+    chunks = await db_session.scalars(
+        select(DocumentChunk)
+        .join(Document, DocumentChunk.document_id == Document.id)
+        .where(Document.file_name == filename)
+    )
+    assert list(chunks.all()) == []

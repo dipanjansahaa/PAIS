@@ -1,14 +1,18 @@
-# PAIS V1 — Technical Architecture
+# PAIS V2 — Product Requirements & Technical Architecture
 
 **Product:** Personal Decision & Action Intelligence System
-**Version:** V1.0
-**Architecture style:** Modular monolith + asynchronous background workers
+**Version:** V2.0
+**Architecture style:** Modular monolith with clearly separated API, application, domain, AI, and persistence responsibilities
 **Primary API:** FastAPI
-**Primary database:** PostgreSQL
-**Vector search:** pgvector
-**Deployment:** Docker Compose initially
-**Primary interface:** REST API + OpenAPI/Swagger
-**AI architecture:** Provider-agnostic LLM and embedding abstractions
+**Primary database:** PostgreSQL + pgvector
+**Deployment:** Docker Compose for local development
+**Primary interface:** React frontend + REST API + OpenAPI/Swagger
+**AI architecture:** Provider abstractions for LLMs, embeddings, and reranking
+**Current milestone:** V2.1 — Foundation and V1 Feature Parity
+
+PAIS V2 evolves the completed V1 system rather than replacing it with a smaller or unrelated product. Existing capabilities remain part of the V2 baseline. New capabilities are delivered milestone by milestone, with persistent personal memory introduced in V2.2 and later roadmap items kept explicitly separate from the current implementation.
+
+Implementation status must be reported honestly: implemented, planned, and verified are different states. Architecture descriptions in this document define design intent; the repository and its tests remain the source of truth for what is currently implemented.
 
 ---
 
@@ -53,7 +57,7 @@ The architecture deliberately avoids premature complexity.
                     │             │
                     ▼             ▼
               Intelligence   Reranker
-                Extraction       │
+                Extraction        │
                     │             ▼
                     │        Context Builder
                     │             │
@@ -77,7 +81,7 @@ The architecture deliberately avoids premature complexity.
 
 # 3. Deployment Architecture
 
-V1 will run as a small number of containers.
+V2 currently uses Docker Compose for local development.
 
 ```text
 ┌───────────────────────────────────────────────┐
@@ -110,7 +114,7 @@ Initially:
 
 are enough.
 
-Redis, Kafka, Kubernetes, separate vector databases, etc. are **not required for V1**.
+Redis, Kafka, Kubernetes, separate vector databases, etc. are **not required for the current V2 baseline**.
 
 ---
 
@@ -195,8 +199,6 @@ QueryRequest validation
 QueryService
 ```
 
----
-
 ## 5.2 Document Service
 
 Responsible for document lifecycle.
@@ -216,8 +218,6 @@ DocumentService
        ▼
 IngestionService
 ```
-
----
 
 ## 5.3 Ingestion Pipeline
 
@@ -291,8 +291,6 @@ Converts text into vectors.
 
 Stores embeddings and searchable metadata.
 
----
-
 ## 5.4 Retrieval Layer
 
 Retrieval is deliberately separated from generation.
@@ -318,8 +316,6 @@ Dense Search    Lexical Search
 
 This allows us to evaluate retrieval independently.
 
----
-
 ## 5.5 Query Analyzer
 
 The query analyzer determines what kind of query the user submitted.
@@ -343,8 +339,6 @@ could become:
 
 Not every query requires the same retrieval strategy.
 
----
-
 ## 5.6 Dense Retriever
 
 Uses embeddings to find semantically similar chunks.
@@ -362,8 +356,6 @@ class DenseRetriever(Protocol):
         ...
 ```
 
----
-
 ## 5.7 Lexical Retriever
 
 Handles exact terminology and keyword-sensitive searches.
@@ -380,8 +372,6 @@ class LexicalRetriever(Protocol):
     ) -> list[RetrievalResult]:
         ...
 ```
-
----
 
 ## 5.8 Retrieval Fusion
 
@@ -402,8 +392,6 @@ B, D, A, E, C, F
 
 The exact fusion algorithm will be an implementation decision that we evaluate rather than assume upfront.
 
----
-
 ## 5.9 Reranker
 
 The reranker receives candidate chunks and scores their relevance against the query.
@@ -417,8 +405,6 @@ Top 5 relevant chunks
 ```
 
 This reduces the amount of irrelevant context sent to the LLM.
-
----
 
 ## 5.10 Context Builder
 
@@ -452,8 +438,6 @@ Context
 
 The context builder should not contain LLM reasoning.
 
----
-
 ## 5.11 Answer Generator
 
 Responsible for producing the final response from:
@@ -473,8 +457,6 @@ Answer
 Sources
 Metadata
 ```
-
----
 
 ## 5.12 Intelligence Extraction
 
@@ -513,8 +495,6 @@ Risk
 Follow-up
 ```
 
----
-
 ## 5.13 Task Service
 
 Owns task business logic.
@@ -529,8 +509,6 @@ It should know:
 * relationship to commitments
 
 It should NOT know how embeddings are generated.
-
----
 
 ## 5.14 Decision Service
 
@@ -547,8 +525,6 @@ Date
 Source
 Status
 ```
-
----
 
 ## 5.15 Commitment Service
 
@@ -569,8 +545,6 @@ Commitment
 └── source
 ```
 
----
-
 ## 5.16 Provenance Service
 
 Every important AI-generated object should have a source chain.
@@ -589,11 +563,9 @@ The provenance service manages these relationships.
 
 This should be treated as a first-class capability rather than scattered foreign keys throughout arbitrary code.
 
----
-
 ## 5.17 Memory Layer
 
-V1 memory is intentionally simple.
+The current baseline separates source knowledge, persisted user state, and short-term conversation context. Durable personal memory is planned for V2.2.
 
 We distinguish between:
 
@@ -1062,16 +1034,16 @@ This keeps the user in control.
 
 This distinction will be central to the architecture.
 
-| User request                           | Primary mechanism             |
-| -------------------------------------- | ----------------------------- |
-| "What tasks are overdue?"              | SQL                           |
-| "What commitments do I have?"          | SQL                           |
-| "What did I discuss about deployment?" | Hybrid retrieval + RAG        |
-| "What decision did I make about DB?"   | Structured DB + retrieval     |
-| "Why does this task exist?"            | Provenance + source retrieval |
-| "Summarize Project X"                  | Structured DB + RAG           |
-| "What changed recently?"               | Temporal DB query + retrieval |
-| "What should I focus on?"              | Structured state + reasoning  |
+| User request | Primary mechanism |
+| --- | --- |
+| "What tasks are overdue?" | SQL |
+| "What commitments do I have?" | SQL |
+| "What did I discuss about deployment?" | Hybrid retrieval + RAG |
+| "What decision did I make about DB?" | Structured DB + retrieval |
+| "Why does this task exist?" | Provenance + source retrieval |
+| "Summarize Project X" | Structured DB + RAG |
+| "What changed recently?" | Temporal DB query + retrieval |
+| "What should I focus on?" | Structured state + reasoning |
 
 This prevents us from building a giant RAG hammer and treating every problem like a nail.
 
@@ -1079,7 +1051,7 @@ This prevents us from building a giant RAG hammer and treating every problem lik
 
 # 19. Agent vs Workflow Boundary
 
-V1 should primarily use **deterministic workflows**.
+PAIS should primarily use **deterministic workflows** where the execution path is known.
 
 Example:
 
@@ -1124,7 +1096,7 @@ Even then, we should benchmark whether a deterministic workflow is simpler.
 
 # 20. MCP Boundary
 
-MCP is **not part of the core V1 domain model**.
+MCP is **not part of the core domain model**; it belongs at the integration/tool boundary.
 
 It belongs at the tool/integration boundary.
 
@@ -1367,7 +1339,7 @@ Only if justified:
                     PostgreSQL
 ```
 
-We don't need Kubernetes for V1.
+Kubernetes is not required for the current local-development baseline.
 
 ---
 
@@ -1559,7 +1531,7 @@ This makes changing models an engineering decision rather than a rewrite.
 
 # 29. The Critical Data Flow
 
-The entire V1 can ultimately be understood as two major pipelines.
+The PAIS architecture can be understood as two major pipelines. The diagram is conceptual and does not imply that every future V2 capability has already been implemented.
 
 ## Knowledge pipeline
 
@@ -1671,7 +1643,7 @@ Examples:
 
 ```text
 ADR-001 — Modular monolith instead of microservices
-ADR-002 — PostgreSQL + pgvector for V1
+ADR-002 — PostgreSQL + pgvector as the persistence and retrieval foundation
 ADR-003 — Provider abstraction for LLMs
 ADR-004 — Hybrid retrieval
 ADR-005 — Reranking strategy
@@ -1684,88 +1656,90 @@ This will make the GitHub repository much stronger because it demonstrates **eng
 
 ---
 
-# 32. Initial Implementation Sequence
+# 32. V2 Implementation Sequence
 
-We should build in this order:
+PAIS V2 is delivered through the agreed milestone roadmap. Existing V1 capabilities are retained and regression-tested; future milestones must not be described as implemented before their acceptance criteria are met.
 
 ```text
-Phase 1
-Project skeleton
+V2.1 — Foundation and V1 Feature Parity
         ↓
-Configuration
+V2.2 — Persistent Personal Memory
         ↓
-Database
+V2.3 — Knowledge Graph and Temporal Intelligence
         ↓
-Document model
+V2.4 — Advanced Retrieval and Evidence-Grounded Reasoning
         ↓
-Document ingestion
+V2.5 — Proactive Intelligence Engine
         ↓
-Chunking
+V2.6 — Controlled AI Agents and Workflows
         ↓
-Embeddings
+V2.7 — Evaluation and Continuous Improvement
         ↓
-pgvector
-
-Phase 2
-Dense retrieval
+V2.8 — Unified Frontend and User Experience
         ↓
-Lexical retrieval
-        ↓
-Fusion
-        ↓
-Reranking
-        ↓
-Search API
-
-Phase 3
-LLM abstraction
-        ↓
-Context builder
-        ↓
-Grounded QA
-        ↓
-Source attribution
-
-Phase 4
-Structured extraction
-        ↓
-Commitments
-        ↓
-Decisions
-        ↓
-Tasks
-        ↓
-Provenance
-
-Phase 5
-Daily intelligence
-        ↓
-Evaluation
-        ↓
-Observability
-        ↓
-Testing
-
-Phase 6
-Docker
-        ↓
-Production hardening
-        ↓
-Deployment
-
-Phase 7
-MCP / external integrations
+V2.9 — Production Readiness and Release
 ```
 
-This order is deliberate.
+## V2.1 — Foundation and V1 Feature Parity
 
-We establish the **knowledge and retrieval foundation** before introducing agentic behavior.
+Establish a stable V2 foundation while preserving the capabilities implemented in V1. This includes application configuration, authentication and user isolation, PostgreSQL/pgvector persistence, database migrations, Docker Compose, document ingestion, hybrid retrieval, query and grounded question answering, structured intelligence, tasks and commitments, daily intelligence, observability, and the existing frontend workflows.
+
+The objective is to ensure that V2 provides a reliable foundation for future development without losing the functionality established in V1. Backend and frontend checks, migration validation, regression testing, and documentation review should establish that the retained capabilities continue to work as expected.
+
+## V2.2 — Persistent Personal Memory
+
+Introduce a persistent memory system that allows PAIS to retain useful information about a user's preferences, goals, constraints, and established facts across interactions. Memory records should include appropriate provenance, timestamps, confidence where justified, and mechanisms for handling updates and changing information. Users should be able to inspect, correct, and delete stored memories.
+
+The objective is to move beyond retrieving information from documents toward maintaining a durable, user-controlled representation of relevant personal context. Memory retrieval must preserve source attribution and user isolation.
+
+## V2.3 — Knowledge Graph and Temporal Intelligence
+
+Introduce explicit relationships between entities such as projects, people, decisions, tasks, commitments, risks, documents, and personal memories. Build on these relationships to support temporal reasoning, including how information changes over time, how decisions relate to subsequent actions, and how commitments evolve.
+
+The objective is to help PAIS understand not only individual pieces of information but also their relationships and historical context. Temporal conclusions must be supported by stored evidence and clearly defined data semantics.
+
+## V2.4 — Advanced Retrieval and Evidence-Grounded Reasoning
+
+Improve retrieval quality and answer generation by building on the existing hybrid retrieval and reranking foundation. Explore improvements to evidence selection, query understanding, retrieval strategies, reranking, and context construction. Evaluate these changes against repeatable benchmarks to determine whether they produce measurable improvements.
+
+The objective is to make PAIS more effective at finding relevant information and producing answers supported by reliable evidence. Answers should retain source attribution, and improvements should be demonstrated through evaluation rather than assumed from architectural complexity.
+
+## V2.5 — Proactive Intelligence Engine
+
+Extend PAIS from responding to explicit queries toward identifying relevant developments and actionable information proactively. Use persisted information, deadlines, commitments, tasks, project changes, and recent activity to identify upcoming obligations, emerging risks, relevant changes, and potential next actions.
+
+The objective is to help users understand what requires attention without having to manually search for every development. Prioritization should be deterministic where practical, recommendations should be explainable, and notifications or suggestions should be grounded in available evidence.
+
+## V2.6 — Controlled AI Agents and Workflows
+
+Introduce agentic capabilities for workflows that benefit from dynamic tool selection, multi-step reasoning, or coordinated actions. Build on the existing application services and integrations, with bounded tool access, explicit permissions, traceable execution, and appropriate error handling. Consequential actions should require user confirmation where necessary.
+
+The objective is to enable PAIS to assist with more complex workflows without sacrificing control, security, or transparency. Agents should operate within defined boundaries rather than receiving unrestricted access to application data or external systems.
+
+## V2.7 — Evaluation and Continuous Improvement
+
+Establish a systematic evaluation framework covering retrieval, structured extraction, grounded generation, persistent memory, proactive recommendations, agent execution, and end-to-end workflows. Introduce repeatable test datasets, evaluation metrics, regression checks, and model-run tracking where appropriate. Use evaluation results to identify weaknesses and guide subsequent improvements.
+
+The objective is to make quality measurable across the system as its capabilities become more sophisticated. Offline evaluation results, automated test outcomes, and actual production behavior should remain distinct, with regressions identified before changes are accepted.
+
+## V2.8 — Unified Frontend and User Experience
+
+Evolve the existing React frontend to support the expanding capabilities of PAIS while preserving established workflows for Intelligence, Daily, Search, Query, and Documents. Introduce interfaces for persistent memory, entity relationships, proactive recommendations, and agent-assisted workflows as their underlying APIs and functionality become available.
+
+The objective is to provide a coherent user experience across the entire application rather than presenting each new capability as an isolated feature. Frontend workflows should reflect implemented backend functionality, preserve user isolation, and communicate the evidence behind important information and recommendations.
+
+## V2.9 — Production Readiness and Release
+
+Prepare PAIS V2 for a controlled release by completing security and data-handling reviews, operational documentation, deployment configuration, monitoring, backup and restore procedures, and full regression testing. Validate authentication and authorization boundaries, database migrations, failure handling, configuration management, logging, and recovery procedures. Review performance and resource requirements under representative workloads.
+
+The objective is to establish that the system can be operated and maintained reliably, not merely that it works in a development environment. Production readiness should be claimed only after the defined release criteria have been verified in the intended deployment environment.
+
 
 ---
 
 # 33. Final Architecture Principle
 
-The most important architectural principle for PAIS V1 is:
+The most important architectural principle for PAIS V2 is:
 
 ```text
                     ┌─────────────────────┐
@@ -1800,38 +1774,38 @@ That single distinction will prevent a huge number of architectural problems lat
 
 ---
 
-# 34. V1 Architecture in One Diagram
+# 34. PAIS V2 Architecture in One Diagram
 
 ```text
-                         USER
-                          │
-                          ▼
-                     ┌─────────┐
-                     │ FastAPI │
-                     └────┬────┘
-                          │
-             ┌────────────┼────────────┐
-             │            │            │
-             ▼            ▼            ▼
-        Documents       Query        Tasks
-             │            │
-             ▼            │
-        INGESTION         │
-             │            │
-      ┌──────┴──────┐     │
-      ▼             ▼     │
-    Chunks      Extraction│
-      │             │     │
-      ▼             ▼     │
+                          USER
+                           │
+                           ▼
+                      ┌─────────┐
+                      │ FastAPI │
+                      └────┬────┘
+                           │
+             ┌─────────────┼────────────┐
+             │             │            │
+             ▼             ▼            ▼
+        Documents        Query        Tasks
+             │             │
+             ▼             │
+        INGESTION          │
+             │             │
+      ┌──────┴──────┐      │
+      ▼             ▼      │
+    Chunks      Extraction │
+      │             │      │
+      ▼             ▼      │
   Embeddings    Structured │
       │          Entities  │
-      ▼             │     │
-┌───────────┐       │     │
-│ pgvector  │       │     │
-└─────┬─────┘       │     │
-      │             │     │
-      ▼             ▼     ▼
-   Retrieval    PostgreSQL
+      ▼             │      │
+┌───────────┐       │      │
+│ pgvector  │       │      │
+└─────┬─────┘       │      │
+      │             │      │
+      ▼             ▼      ▼
+   Retrieval       PostgreSQL
       │             │
  ┌────┴────┐        │
  ▼         ▼        │
@@ -1865,7 +1839,7 @@ Dense    Lexical    │
 
 # 35. Database Architecture
 
-V1 uses:
+The current V2 persistence design uses:
 
 ```text
 PostgreSQL
@@ -1949,7 +1923,7 @@ document/chunk provenance.
 
 # 37. Core Tables
 
-V1 will contain these primary tables:
+The core schema is expected to contain these primary tables, subject to the actual migrations:
 
 ```text
 users
@@ -1974,7 +1948,7 @@ We will deliberately avoid creating tables for every conceivable concept.
 
 # 38. `users`
 
-Even though V1 is effectively single-user, we should include a user identity in the schema.
+Even in local development, the schema includes user identity and ownership so that user-level isolation remains part of the design.
 
 This costs almost nothing and prevents us from having to redesign every table later.
 
@@ -2050,7 +2024,7 @@ CREATE TABLE people (
 );
 ```
 
-We should **not** attempt sophisticated identity resolution in V1.
+We should **not** attempt sophisticated identity resolution before a concrete V2 requirement justifies it.
 
 For example:
 
@@ -2192,7 +2166,7 @@ However, there is an important design issue here.
 
 Therefore, we should not hard-code `1536` until we select the actual embedding model.
 
-The final migration will use the dimension of the selected V1 model.
+The embedding column dimension must match the configured embedding model and any migration must account for that compatibility.
 
 ---
 
@@ -2331,7 +2305,7 @@ A task can originate from:
 * a specific chunk
 * a user directly creating it
 
-Rather than stuffing all of this into unrelated columns, V1 should use a provenance table.
+Rather than stuffing all of this into unrelated columns, provenance should be represented explicitly where required by the domain model.
 
 ```sql
 CREATE TABLE task_sources (
@@ -2594,7 +2568,7 @@ and create a full knowledge graph.
 
 That is a classic scope trap.
 
-V1 only needs explicit domain entities:
+The current domain model should use explicit domain entities for the capabilities it supports:
 
 ```text
 Project
@@ -2826,7 +2800,7 @@ job.status
 
 We can implement these as PostgreSQL enums or constrained strings.
 
-For V1, I prefer **constrained strings/check constraints** over PostgreSQL enums because application-level evolution is easier.
+Prefer **constrained strings/check constraints** over PostgreSQL enums where this makes application-level evolution easier.
 
 ---
 
@@ -2858,7 +2832,7 @@ This matters for:
 
 # 63. Soft Delete
 
-We should **not implement soft deletion everywhere in V1**.
+We should **not implement soft deletion everywhere without a concrete retention or recovery requirement**.
 
 For source documents, deleting the document should normally cascade to its chunks.
 
@@ -3038,9 +3012,9 @@ We don't necessarily need eight physical migration files on day one; this is the
 
 ---
 
-# 68. V1 Database Rules
+# 68. V2 Database Rules
 
-The database architecture follows six rules:
+The database architecture follows six rules across V2:
 
 ### Rule 1
 
@@ -3070,7 +3044,7 @@ The database architecture follows six rules:
 
 # 69. Recommended Initial Schema
 
-If we strip the schema down to the absolute V1 core, the dependency graph is:
+The core schema dependency graph is:
 
 ```text
 users
@@ -3103,4 +3077,4 @@ users
          └── model_runs
 ```
 
-That is enough to support the entire V1 architecture.
+This is the baseline relational structure. Any additional V2 tables must be introduced through reviewed Alembic migrations and justified by the active milestone.

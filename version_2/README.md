@@ -1,4 +1,4 @@
-# PAIS — Personal Decision & Action Intelligence System
+# PAIS V2 — Personal Decision & Action Intelligence System
 
 PAIS is a personal intelligence system that turns unstructured information into **searchable, traceable, structured, and actionable knowledge**.
 
@@ -7,6 +7,8 @@ It combines document ingestion, semantic and lexical retrieval, grounded LLM gen
 > **Core principle:** Use the LLM for reasoning and generation while keeping source data and application state authoritative.
 
 PAIS does not treat an LLM's output as the source of truth. Original documents and persisted application data remain authoritative, while generated information is grounded in retrieved evidence and linked back to its sources wherever applicable.
+
+**PAIS V2 status:** V2 evolves the completed V1 baseline. The V2 roadmap is organized into milestones V2.1--V2.9; features described as future roadmap work are not necessarily implemented in the current codebase.
 
 ---
 
@@ -187,15 +189,15 @@ PAIS follows a layered architecture.
 
 The architecture intentionally separates:
 
-* HTTP concerns
-* Authentication
-* Business services
-* Retrieval
-* LLM providers
-* Structured extraction
-* Domain models
-* Persistence
-* Observability
+- HTTP concerns
+- Authentication
+- Business services
+- Retrieval
+- LLM providers
+- Structured extraction
+- Domain models
+- Persistence
+- Observability
 
 ---
 
@@ -340,7 +342,7 @@ Install the following:
 
 ```bash
 git clone <repository-url>
-cd PAIS/version_1
+cd PAIS/version_2
 ```
 
 Replace `<repository-url>` with the actual repository URL.
@@ -411,7 +413,7 @@ View logs when troubleshooting:
 docker compose logs -f api
 ```
 
-The API is configured to listen on port `8000` by default. PostgreSQL is configured on port `5432` by default.
+The V2 Docker Compose configuration exposes the API at host port `8001` and PostgreSQL at host port `5433`. Inside the Compose network, the API listens on port `8000` and connects to PostgreSQL through the `db:5432` service address.
 
 ### 5. Run Database Migrations
 
@@ -445,7 +447,7 @@ Vite serves the frontend at:
 http://localhost:5173
 ```
 
-The Vite development server proxies requests beginning with `/api` to `http://localhost:8000`, so the frontend can use the backend without a separate API URL during local development.
+The Vite development server should proxy requests beginning with `/api` to the V2 API at `http://localhost:8001`, so the frontend can use the backend without a separate API URL during local development. Check `frontend/vite.config.ts` if the configured proxy differs.
 
 To create a production frontend build:
 
@@ -466,19 +468,19 @@ The production build is written to `frontend/dist/`. This repository does not ye
 Backend liveness:
 
 ```text
-http://localhost:8000/api/v1/health
+http://localhost:8001/api/v1/health
 ```
 
 Backend readiness (including database connectivity):
 
 ```text
-http://localhost:8000/api/v1/ready
+http://localhost:8001/api/v1/ready
 ```
 
 Interactive API documentation:
 
 ```text
-http://localhost:8000/docs
+http://localhost:8001/docs
 ```
 
 Frontend:
@@ -507,7 +509,7 @@ Shared feedback components provide loading, empty, and error states. The fronten
 
 ### Frontend API behavior
 
-The frontend API client uses the relative prefix `/api/v1`. During local development, Vite proxies `/api` requests to the backend at `http://localhost:8000`.
+The frontend API client uses the relative prefix `/api/v1`. During local development, Vite should proxy `/api` requests to the V2 backend at `http://localhost:8001`; verify the target in `frontend/vite.config.ts`.
 
 If the frontend and backend are hosted separately in a future deployment, the API routing and browser security configuration will need to be updated accordingly.
 
@@ -611,10 +613,10 @@ The build script runs TypeScript project checks before creating the Vite product
 
 ### Latest reported test result
 
-The latest result reported during development was:
+The latest reported V2 backend result during development was:
 
 ```text
-462 passed, 1 skipped, 1 warning
+471 passed, 1 skipped
 ```
 
 This is a development-time result, not a guarantee that every environment or deployment configuration has been tested. The skipped test requires `RUN_INTEGRATION_TESTS=1`; review the test's setup requirements before treating it as a production verification.
@@ -636,9 +638,23 @@ This is a development-time result, not a guarantee that every environment or dep
 
 ## Current Project Status
 
-The PAIS V1 backend and frontend features have been implemented and exercised locally. The latest reported backend test run completed with 462 passed, 1 skipped, and 1 warning.
+PAIS V2 is being developed milestone by milestone, preserving the completed V1 feature baseline. The latest reported V2 backend test run completed with 471 passed and 1 skipped. V2.1 is still subject to the remaining review and acceptance checks; it should not be described as formally complete until those checks are finished.
 
-**Public production deployment is not yet completed.** Local Docker Compose, database persistence, and local Ollama are part of the current development setup. A future deployment must explicitly address hosting, secrets, authentication lifecycle, persistent storage, network exposure, and LLM inference availability.
+The planned V2 roadmap is:
+
+- **V2.1 --- Foundation and V1 Feature Parity**
+- **V2.2 --- Persistent Personal Memory**
+- **V2.3 --- Knowledge Graph and Temporal Intelligence**
+- **V2.4 --- Advanced Retrieval and Evidence-Grounded Reasoning**
+- **V2.5 --- Proactive Intelligence Engine**
+- **V2.6 --- Controlled AI Agents and Workflows**
+- **V2.7 --- Evaluation and Continuous Improvement**
+- **V2.8 --- Unified Frontend and User Experience**
+- **V2.9 --- Production Readiness and Release**
+
+The roadmap describes planned milestones, not a claim that every capability is already implemented.
+
+**Public production deployment is not yet completed.** The current V2 development setup uses Docker Compose, PostgreSQL with pgvector, and local Ollama inference. V2 is being built on top of the V1 feature baseline; planned roadmap capabilities should not be interpreted as already implemented. A future deployment must explicitly address hosting, secrets, authentication lifecycle, persistent storage, network exposure, and LLM inference availability.
 
 ---
 

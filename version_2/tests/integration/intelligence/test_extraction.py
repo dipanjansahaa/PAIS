@@ -23,6 +23,17 @@ from app.llm.models import LLMResponse
 from app.retrieval.service import SearchService
 from app.api.v1.search import get_search_service
 
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
+
+from sqlalchemy import select
+
+from app.database.models.task import Task, TaskSource
+from app.intelligence.persistence_service import (
+    IntelligencePersistenceService,
+)
+from app.intelligence.workflow import IntelligenceWorkflowService
+
 
 class FakeStructuredLLM:
     """Deterministic structured LLM for integration tests."""
@@ -258,3 +269,186 @@ async def test_extraction_only_accepts_sources_from_retrieval(
         await extraction_service.extract(
             retrieval_results,
         )
+
+
+@pytest.mark.asyncio
+async def test_workflow_persists_task_with_source_provenance(
+    db_session: AsyncSession,
+    extraction_user: User,
+):
+    """The workflow persists extracted tasks and their source chunks."""
+
+    document = Document(
+        user_id=extraction_user.id,
+        title="Deployment Review",
+        source_type="notes",
+        mime_type="text/plain",
+        file_name="deployment-review.txt",
+        content_hash=f"workflow-{uuid4().hex}",
+        raw_text="Review the API deployment plan before October 20.",
+    )
+
+    db_session.add(document)
+    await db_session.flush()
+
+    chunk = DocumentChunk(
+        document_id=document.id,
+        chunk_index=0,
+        content="Review the API deployment plan before October 20.",
+        embedding=[1.0] + [0.0] * 383,
+    )
+
+    db_session.add(chunk)
+    await db_session.flush()
+
+    intelligence = StructuredIntelligence(
+        tasks=[
+            TaskCandidate(
+                description="Review the API deployment plan",
+                priority="high",
+                sources=[
+                    IntelligenceSource(chunk_id=chunk.id),
+                ],
+            ),
+        ],
+    )
+
+    # Mock only the extraction output. Persistence remains real.
+    extraction_service = AsyncMock()
+    extraction_service.extract.return_value = SimpleNamespace(
+        intelligence=intelligence,
+    )
+
+    workflow = IntelligenceWorkflowService(
+        extraction_service=extraction_service,
+        persistence_service=IntelligencePersistenceService(),
+    )
+
+    result = await workflow.extract_and_persist(
+        db_session,
+        user_id=extraction_user.id,
+        document_id=document.id,
+    )
+
+    assert result.tasks == 1
+
+    await db_session.commit()
+
+    persisted_task = await db_session.scalar(
+        select(Task).where(
+            Task.user_id == extraction_user.id,
+            Task.description == "Review the API deployment plan",
+        )
+    )
+
+    assert persisted_task is not None
+    assert persisted_task.priority == "high"
+
+    persisted_source = await db_session.scalar(
+        select(TaskSource).where(
+            TaskSource.task_id == persisted_task.id,
+            TaskSource.chunk_id == chunk.id,
+        )
+    )
+
+    assert persisted_source is not None
+
+
+@pytest.mark.asyncio
+async def test_workflow_does_not_extract_another_users_document(
+    db_session: AsyncSession,
+    extraction_user: User,
+):
+    """The workflow must not read chunks owned by another user."""
+
+    other_user = User(
+        email=f"other-user-{uuid4().hex}@example.com",
+        display_name="Other User",
+    )
+    db_session.add(other_user)
+    await db_session.flush()
+
+    document = Document(
+        user_id=other_user.id,
+        title="Another User's Notes",
+        source_type="notes",
+        mime_type="text/plain",
+        file_name=f"other-user-{uuid4().hex}.txt",
+        content_hash=f"other-user-{uuid4().hex}",
+        raw_text="Confidential project information.",
+    )
+    db_session.add(document)
+    await db_session.flush()
+
+    chunk = DocumentChunk(
+        document_id=document.id,
+        chunk_index=0,
+        content="Confidential project information.",
+        embedding=[1.0] + [0.0] * 383,
+    )
+    db_session.add(chunk)
+    await db_session.flush()
+
+    extraction_service = AsyncMock()
+
+    workflow = IntelligenceWorkflowService(
+        extraction_service=extraction_service,
+        persistence_service=IntelligencePersistenceService(),
+    )
+
+    result = await workflow.extract_and_persist(
+        db_session,
+        user_id=extraction_user.id,
+        document_id=document.id,
+    )
+
+    assert result.tasks == 0
+    extraction_service.extract.assert_not_awaited()
+
+    await db_session.delete(other_user)
+    await db_session.flush()
+
+
+@pytest.mark.asyncio
+async def test_workflow_returns_empty_result_when_document_has_no_chunks(
+    db_session: AsyncSession,
+    extraction_user: User,
+):
+    """A document without chunks should not trigger extraction."""
+
+    document = Document(
+        user_id=extraction_user.id,
+        title="Empty Notes",
+        source_type="notes",
+        mime_type="text/plain",
+        file_name=f"empty-{uuid4().hex}.txt",
+        content_hash=f"empty-{uuid4().hex}",
+        raw_text="",
+    )
+
+    db_session.add(document)
+    await db_session.flush()
+
+    extraction_service = AsyncMock()
+    persistence_service = AsyncMock()
+
+    workflow = IntelligenceWorkflowService(
+        extraction_service=extraction_service,
+        persistence_service=persistence_service,
+    )
+
+    result = await workflow.extract_and_persist(
+        db_session,
+        user_id=extraction_user.id,
+        document_id=document.id,
+    )
+
+    assert result.tasks == 0
+    assert result.commitments == 0
+    assert result.decisions == 0
+    assert result.projects == 0
+    assert result.people == 0
+    assert result.risks == 0
+
+    extraction_service.extract.assert_not_awaited()
+    persistence_service.persist.assert_not_awaited()
