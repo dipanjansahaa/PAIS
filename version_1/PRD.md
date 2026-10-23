@@ -53,7 +53,7 @@ The architecture deliberately avoids premature complexity.
                     │             │
                     ▼             ▼
               Intelligence   Reranker
-                Extraction       │
+                Extraction        │
                     │             ▼
                     │        Context Builder
                     │             │
@@ -195,8 +195,6 @@ QueryRequest validation
 QueryService
 ```
 
----
-
 ## 5.2 Document Service
 
 Responsible for document lifecycle.
@@ -216,8 +214,6 @@ DocumentService
        ▼
 IngestionService
 ```
-
----
 
 ## 5.3 Ingestion Pipeline
 
@@ -291,8 +287,6 @@ Converts text into vectors.
 
 Stores embeddings and searchable metadata.
 
----
-
 ## 5.4 Retrieval Layer
 
 Retrieval is deliberately separated from generation.
@@ -318,8 +312,6 @@ Dense Search    Lexical Search
 
 This allows us to evaluate retrieval independently.
 
----
-
 ## 5.5 Query Analyzer
 
 The query analyzer determines what kind of query the user submitted.
@@ -343,8 +335,6 @@ could become:
 
 Not every query requires the same retrieval strategy.
 
----
-
 ## 5.6 Dense Retriever
 
 Uses embeddings to find semantically similar chunks.
@@ -362,8 +352,6 @@ class DenseRetriever(Protocol):
         ...
 ```
 
----
-
 ## 5.7 Lexical Retriever
 
 Handles exact terminology and keyword-sensitive searches.
@@ -380,8 +368,6 @@ class LexicalRetriever(Protocol):
     ) -> list[RetrievalResult]:
         ...
 ```
-
----
 
 ## 5.8 Retrieval Fusion
 
@@ -402,8 +388,6 @@ B, D, A, E, C, F
 
 The exact fusion algorithm will be an implementation decision that we evaluate rather than assume upfront.
 
----
-
 ## 5.9 Reranker
 
 The reranker receives candidate chunks and scores their relevance against the query.
@@ -417,8 +401,6 @@ Top 5 relevant chunks
 ```
 
 This reduces the amount of irrelevant context sent to the LLM.
-
----
 
 ## 5.10 Context Builder
 
@@ -452,8 +434,6 @@ Context
 
 The context builder should not contain LLM reasoning.
 
----
-
 ## 5.11 Answer Generator
 
 Responsible for producing the final response from:
@@ -473,8 +453,6 @@ Answer
 Sources
 Metadata
 ```
-
----
 
 ## 5.12 Intelligence Extraction
 
@@ -513,8 +491,6 @@ Risk
 Follow-up
 ```
 
----
-
 ## 5.13 Task Service
 
 Owns task business logic.
@@ -529,8 +505,6 @@ It should know:
 * relationship to commitments
 
 It should NOT know how embeddings are generated.
-
----
 
 ## 5.14 Decision Service
 
@@ -547,8 +521,6 @@ Date
 Source
 Status
 ```
-
----
 
 ## 5.15 Commitment Service
 
@@ -569,8 +541,6 @@ Commitment
 └── source
 ```
 
----
-
 ## 5.16 Provenance Service
 
 Every important AI-generated object should have a source chain.
@@ -589,11 +559,9 @@ The provenance service manages these relationships.
 
 This should be treated as a first-class capability rather than scattered foreign keys throughout arbitrary code.
 
----
-
 ## 5.17 Memory Layer
 
-V1 memory is intentionally simple.
+The current baseline separates source knowledge, persisted user state, and short-term conversation context. Durable personal memory is planned for V2.2.
 
 We distinguish between:
 
@@ -1062,16 +1030,16 @@ This keeps the user in control.
 
 This distinction will be central to the architecture.
 
-| User request                           | Primary mechanism             |
-| -------------------------------------- | ----------------------------- |
-| "What tasks are overdue?"              | SQL                           |
-| "What commitments do I have?"          | SQL                           |
-| "What did I discuss about deployment?" | Hybrid retrieval + RAG        |
-| "What decision did I make about DB?"   | Structured DB + retrieval     |
-| "Why does this task exist?"            | Provenance + source retrieval |
-| "Summarize Project X"                  | Structured DB + RAG           |
-| "What changed recently?"               | Temporal DB query + retrieval |
-| "What should I focus on?"              | Structured state + reasoning  |
+| User request | Primary mechanism |
+| --- | --- |
+| "What tasks are overdue?" | SQL |
+| "What commitments do I have?" | SQL |
+| "What did I discuss about deployment?" | Hybrid retrieval + RAG |
+| "What decision did I make about DB?" | Structured DB + retrieval |
+| "Why does this task exist?" | Provenance + source retrieval |
+| "Summarize Project X" | Structured DB + RAG |
+| "What changed recently?" | Temporal DB query + retrieval |
+| "What should I focus on?" | Structured state + reasoning |
 
 This prevents us from building a giant RAG hammer and treating every problem like a nail.
 
@@ -1686,80 +1654,66 @@ This will make the GitHub repository much stronger because it demonstrates **eng
 
 # 32. Initial Implementation Sequence
 
-We should build in this order:
+PAIS V1 was developed through seven milestones. Each milestone built on the capabilities established by the previous one, progressing from the foundational document ingestion and retrieval pipeline to grounded question answering, structured intelligence, and application-level workflows.
 
 ```text
-Phase 1
-Project skeleton
+V1.1 — Foundation and Document Ingestion
         ↓
-Configuration
+V1.2 — Hybrid Retrieval and Search
         ↓
-Database
+V1.3 — Query and Grounded Question Answering
         ↓
-Document model
+V1.4 — Structured Intelligence and Actionable Information
         ↓
-Document ingestion
+V1.5 — Daily Intelligence and Observability
         ↓
-Chunking
+V1.6 — Application Integration and Deployment Foundation
         ↓
-Embeddings
-        ↓
-pgvector
-
-Phase 2
-Dense retrieval
-        ↓
-Lexical retrieval
-        ↓
-Fusion
-        ↓
-Reranking
-        ↓
-Search API
-
-Phase 3
-LLM abstraction
-        ↓
-Context builder
-        ↓
-Grounded QA
-        ↓
-Source attribution
-
-Phase 4
-Structured extraction
-        ↓
-Commitments
-        ↓
-Decisions
-        ↓
-Tasks
-        ↓
-Provenance
-
-Phase 5
-Daily intelligence
-        ↓
-Evaluation
-        ↓
-Observability
-        ↓
-Testing
-
-Phase 6
-Docker
-        ↓
-Production hardening
-        ↓
-Deployment
-
-Phase 7
-MCP / external integrations
+V1.7 — MCP and External Integrations
 ```
 
-This order is deliberate.
+## V1.1 — Foundation and Document Ingestion
 
-We establish the **knowledge and retrieval foundation** before introducing agentic behavior.
+Establish the application's engineering foundation, including project structure, configuration, environment validation, database connectivity, and schema migrations. Implement document persistence, text extraction, chunking, embedding generation, and PostgreSQL/pgvector integration.
+
+The objective is to create a reliable pipeline that converts source documents into persisted, searchable knowledge while maintaining the relationships between documents and their chunks.
+
+## V1.2 — Hybrid Retrieval and Search
+
+Implement dense vector retrieval and lexical retrieval, then combine their results using Reciprocal Rank Fusion (RRF). Introduce cross-encoder reranking as an additional retrieval refinement and establish retrieval evaluation and benchmarking.
+
+Expose search through an API with appropriate user isolation and project filtering. Retrieval quality should be measured through repeatable evaluations rather than assumed from the retrieval architecture alone.
+
+## V1.3 — Query and Grounded Question Answering
+
+Introduce an LLM abstraction and build the query workflow on top of the retrieval foundation. Select relevant context, construct evidence-grounded prompts, generate answers, and preserve source attribution.
+
+Expose the workflow through a query API. Answers should be grounded in retrieved evidence, with source references helping users understand where the information originated.
+
+## V1.4 — Structured Intelligence and Actionable Information
+
+Extend PAIS beyond document search by extracting structured intelligence from available information. Implement structured intelligence extraction and deduplication, then build on these capabilities to represent projects, people, decisions, and risks.
+
+Introduce tasks and commitments with appropriate persistence, status handling, and source relationships. The objective is to transform information into actionable records while retaining traceability to supporting evidence.
+
+## V1.5 — Daily Intelligence and Observability
+
+Aggregate persisted intelligence into a daily view that helps users review relevant information and actionable items. Integrate structured intelligence, tasks, and commitments into the daily intelligence workflow.
+
+Introduce model-run observability and supporting evaluation and regression tests to make AI-backed workflows easier to inspect, validate, and maintain.
+
+## V1.6 — Application Integration and Deployment Foundation
+
+Integrate the backend capabilities into the application frontend, providing workflows for document management, search, question answering, structured intelligence, and daily intelligence.
+
+Consolidate unit, integration, and end-to-end testing across the implemented workflows. Validate API behavior, user isolation, database migrations, Docker-based execution, configuration, and error handling. Maintain operational documentation and distinguish successful test execution from actual production deployment.
+
+## V1.7 — MCP and External Integrations
+
+Explore extending PAIS through the Model Context Protocol (MCP), external integrations, and additional automation where they provide clear value.
+
+Such extensions should build on the existing retrieval, persistence, provenance, and security foundations. They should be considered implemented only when their functionality and acceptance criteria have been verified.
+
 
 ---
 
@@ -1800,38 +1754,38 @@ That single distinction will prevent a huge number of architectural problems lat
 
 ---
 
-# 34. V1 Architecture in One Diagram
+# 34. PAIS V1 Architecture in One Diagram
 
 ```text
-                         USER
-                          │
-                          ▼
-                     ┌─────────┐
-                     │ FastAPI │
-                     └────┬────┘
-                          │
-             ┌────────────┼────────────┐
-             │            │            │
-             ▼            ▼            ▼
-        Documents       Query        Tasks
-             │            │
-             ▼            │
-        INGESTION         │
-             │            │
-      ┌──────┴──────┐     │
-      ▼             ▼     │
-    Chunks      Extraction│
-      │             │     │
-      ▼             ▼     │
+                          USER
+                           │
+                           ▼
+                      ┌─────────┐
+                      │ FastAPI │
+                      └────┬────┘
+                           │
+             ┌─────────────┼────────────┐
+             │             │            │
+             ▼             ▼            ▼
+        Documents        Query        Tasks
+             │             │
+             ▼             │
+        INGESTION          │
+             │             │
+      ┌──────┴──────┐      │
+      ▼             ▼      │
+    Chunks      Extraction │
+      │             │      │
+      ▼             ▼      │
   Embeddings    Structured │
       │          Entities  │
-      ▼             │     │
-┌───────────┐       │     │
-│ pgvector  │       │     │
-└─────┬─────┘       │     │
-      │             │     │
-      ▼             ▼     ▼
-   Retrieval    PostgreSQL
+      ▼             │      │
+┌───────────┐       │      │
+│ pgvector  │       │      │
+└─────┬─────┘       │      │
+      │             │      │
+      ▼             ▼      ▼
+   Retrieval       PostgreSQL
       │             │
  ┌────┴────┐        │
  ▼         ▼        │
@@ -1889,17 +1843,17 @@ The database has three conceptual layers:
                    │
                    ▼
 ┌──────────────────────────────────────┐
-│        Structured Intelligence        │
+│        Structured Intelligence       │
 │                                      │
 │ projects / people / decisions /      │
-│ commitments / tasks / risks           │
+│ commitments / tasks / risks          │
 └──────────────────┬───────────────────┘
                    │
                    ▼
 ┌──────────────────────────────────────┐
 │          System / Evaluation         │
 │                                      │
-│ jobs / evaluations / model metadata   │
+│ jobs / evaluations / model metadata  │
 └──────────────────────────────────────┘
 ```
 
@@ -1932,7 +1886,7 @@ The vector store is an index, not the source of truth.
              │
              ▼
         embeddings
-             
+
 documents
    │
    ├──────────────► tasks
