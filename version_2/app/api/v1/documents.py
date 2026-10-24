@@ -37,11 +37,16 @@ from app.llm.structured import StructuredLLMProvider
 from app.llm.tracked import TrackedLLMProvider
 from app.observability.models import ModelRunOperation
 
+import logging
+
 
 router = APIRouter(
     prefix="/documents",
     tags=["documents"],
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_document_ingestion_service() -> DocumentIngestionService:
@@ -151,6 +156,10 @@ async def create_document(
             document_id=document.id,
         )
     except Exception as exc:
+        logger.exception(
+            "Structured intelligence extraction failed for document_id=%s",
+            document.id,
+        )
         await db_session.rollback()
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

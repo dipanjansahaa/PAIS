@@ -287,7 +287,11 @@ async def test_structured_intelligence_flows_into_daily_end_to_end(
         },
     )
 
-    assert upload_response.status_code == 201
+    assert upload_response.status_code == 201, (
+        f"Document upload failed: "
+        f"status={upload_response.status_code}, "
+        f"body={upload_response.text}"
+    )
 
     uploaded_document = upload_response.json()
     document_id = uploaded_document["id"]

@@ -1686,11 +1686,15 @@ Establish a stable V2 foundation while preserving the capabilities implemented i
 
 The objective is to ensure that V2 provides a reliable foundation for future development without losing the functionality established in V1. Backend and frontend checks, migration validation, regression testing, and documentation review should establish that the retained capabilities continue to work as expected.
 
+**Exit condition:** A verified V1 baseline and a concrete, repository-specific implementation plan.
+
 ## V2.2 — Persistent Personal Memory
 
 Introduce a persistent memory system that allows PAIS to retain useful information about a user's preferences, goals, constraints, and established facts across interactions. Memory records should include appropriate provenance, timestamps, confidence where justified, and mechanisms for handling updates and changing information. Users should be able to inspect, correct, and delete stored memories.
 
 The objective is to move beyond retrieving information from documents toward maintaining a durable, user-controlled representation of relevant personal context. Memory retrieval must preserve source attribution and user isolation.
+
+**Exit condition:** PAIS can maintain and retrieve useful context over time without treating every extracted statement as a permanent fact.
 
 ## V2.3 — Knowledge Graph and Temporal Intelligence
 
@@ -1698,11 +1702,15 @@ Introduce explicit relationships between entities such as projects, people, deci
 
 The objective is to help PAIS understand not only individual pieces of information but also their relationships and historical context. Temporal conclusions must be supported by stored evidence and clearly defined data semantics.
 
+**Exit condition:** PAIS can answer relationship-based and historical questions across its knowledge.
+
 ## V2.4 — Advanced Retrieval and Evidence-Grounded Reasoning
 
 Improve retrieval quality and answer generation by building on the existing hybrid retrieval and reranking foundation. Explore improvements to evidence selection, query understanding, retrieval strategies, reranking, and context construction. Evaluate these changes against repeatable benchmarks to determine whether they produce measurable improvements.
 
 The objective is to make PAIS more effective at finding relevant information and producing answers supported by reliable evidence. Answers should retain source attribution, and improvements should be demonstrated through evaluation rather than assumed from architectural complexity.
+
+**Exit condition:** Complex answers are evidence-grounded, traceable, and measurably evaluated.
 
 ## V2.5 — Proactive Intelligence Engine
 
@@ -1710,11 +1718,15 @@ Extend PAIS from responding to explicit queries toward identifying relevant deve
 
 The objective is to help users understand what requires attention without having to manually search for every development. Prioritization should be deterministic where practical, recommendations should be explainable, and notifications or suggestions should be grounded in available evidence.
 
+**Exit condition:** PAIS can surface important developments without requiring the user to ask the exact question first.
+
 ## V2.6 — Controlled AI Agents and Workflows
 
 Introduce agentic capabilities for workflows that benefit from dynamic tool selection, multi-step reasoning, or coordinated actions. Build on the existing application services and integrations, with bounded tool access, explicit permissions, traceable execution, and appropriate error handling. Consequential actions should require user confirmation where necessary.
 
 The objective is to enable PAIS to assist with more complex workflows without sacrificing control, security, or transparency. Agents should operate within defined boundaries rather than receiving unrestricted access to application data or external systems.
+
+**Exit condition:** PAIS can execute useful, bounded workflows safely, with traceability and appropriate human approval.
 
 ## V2.7 — Evaluation and Continuous Improvement
 
@@ -1722,17 +1734,23 @@ Establish a systematic evaluation framework covering retrieval, structured extra
 
 The objective is to make quality measurable across the system as its capabilities become more sophisticated. Offline evaluation results, automated test outcomes, and actual production behavior should remain distinct, with regressions identified before changes are accepted.
 
+**Exit condition:** Improvements are measurable and model changes do not silently degrade existing capabilities.
+
 ## V2.8 — Unified Frontend and User Experience
 
 Evolve the existing React frontend to support the expanding capabilities of PAIS while preserving established workflows for Intelligence, Daily, Search, Query, and Documents. Introduce interfaces for persistent memory, entity relationships, proactive recommendations, and agent-assisted workflows as their underlying APIs and functionality become available.
 
 The objective is to provide a coherent user experience across the entire application rather than presenting each new capability as an isolated feature. Frontend workflows should reflect implemented backend functionality, preserve user isolation, and communicate the evidence behind important information and recommendations.
 
+**Exit condition:** V2 capabilities are accessible through a coherent, usable frontend.
+
 ## V2.9 — Production Readiness and Release
 
 Prepare PAIS V2 for a controlled release by completing security and data-handling reviews, operational documentation, deployment configuration, monitoring, backup and restore procedures, and full regression testing. Validate authentication and authorization boundaries, database migrations, failure handling, configuration management, logging, and recovery procedures. Review performance and resource requirements under representative workloads.
 
 The objective is to establish that the system can be operated and maintained reliably, not merely that it works in a development environment. Production readiness should be claimed only after the defined release criteria have been verified in the intended deployment environment.
+
+**Exit condition:** A reproducible and deployable V2 release with verified V1 feature parity and tested new capabilities.
 
 
 ---

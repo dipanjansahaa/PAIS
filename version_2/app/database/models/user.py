@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from app.database.models.task import Task
     from app.database.models.person import Person
     from app.database.models.risk import Risk
+    from app.database.models.memory import Memory
 
 
 class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -87,6 +88,13 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     risks: Mapped[list[Risk]] = relationship(
         "Risk",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    memories: Mapped[list[Memory]] = relationship(
+        "Memory",
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,

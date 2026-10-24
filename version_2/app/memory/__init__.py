@@ -1,0 +1,1 @@
+"""Persistent personal memory domain."""
