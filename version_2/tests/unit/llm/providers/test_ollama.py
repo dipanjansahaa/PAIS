@@ -4,10 +4,8 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-
 from app.llm.models import Message
 from app.llm.providers.ollama import OllamaProvider
-
 from pydantic import BaseModel
 
 

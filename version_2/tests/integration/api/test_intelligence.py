@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import httpx
 import pytest
 import pytest_asyncio
-from httpx import ASGITransport
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.dependencies import get_current_user, get_db
 from app.database.models.commitment import (
     Commitment,
@@ -25,6 +22,8 @@ from app.database.models.risk import Risk, RiskSource
 from app.database.models.task import Task, TaskSource
 from app.database.models.user import User
 from app.main import app
+from httpx import ASGITransport
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest_asyncio.fixture
@@ -184,7 +183,7 @@ async def test_intelligence_endpoint_returns_user_intelligence(
         project_id=project.id,
         title="Use PostgreSQL",
         description="Use PostgreSQL for PAIS persistence.",
-        decision_date=datetime.now(timezone.utc),
+        decision_date=datetime.now(UTC),
         status="active",
     )
 

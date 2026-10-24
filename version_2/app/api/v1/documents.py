@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 
 from fastapi import (
@@ -36,9 +37,6 @@ from app.llm.factory import get_llm_provider
 from app.llm.structured import StructuredLLMProvider
 from app.llm.tracked import TrackedLLMProvider
 from app.observability.models import ModelRunOperation
-
-import logging
-
 
 router = APIRouter(
     prefix="/documents",

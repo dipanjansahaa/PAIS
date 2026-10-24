@@ -1,11 +1,10 @@
 """Tests for the persistent memory service."""
 
 from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, Mock
+from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 
 import pytest
-
 from app.database.models.memory import Memory
 from app.memory.service import MemoryService
 

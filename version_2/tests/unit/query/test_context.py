@@ -3,7 +3,6 @@
 from uuid import uuid4
 
 import pytest
-
 from app.query.context import ContextBuilder
 from app.retrieval.models import RetrievalResult
 
@@ -56,9 +55,7 @@ def test_context_builder_preserves_retrieval_order():
 
     context = builder.build([first, second])
 
-    assert context.text.index("First result") < (
-        context.text.index("Second result")
-    )
+    assert context.text.index("First result") < (context.text.index("Second result"))
 
     assert context.sources[0].chunks[0].content == "First result"
     assert context.sources[0].chunks[1].content == "Second result"
@@ -125,10 +122,7 @@ def test_context_builder_groups_chunks_by_document():
     assert context.sources[0].document_id == str(document_id)
     assert len(context.sources[0].chunks) == 2
 
-    assert (
-        context.sources[1].document_id
-        == str(other_document_id)
-    )
+    assert context.sources[1].document_id == str(other_document_id)
     assert len(context.sources[1].chunks) == 1
 
 

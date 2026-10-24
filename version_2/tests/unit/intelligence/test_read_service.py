@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-
 from app.database.models.commitment import (
     Commitment,
     CommitmentSource,
@@ -63,7 +62,7 @@ async def test_get_snapshot_returns_all_intelligence_categories() -> None:
     risk_id = uuid4()
     risk_chunk_id = uuid4()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     task = Task(
         id=task_id,

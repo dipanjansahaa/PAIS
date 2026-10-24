@@ -7,8 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models.document import Document
 from app.database.models.document_chunk import DocumentChunk
-from app.database.models.project import Project
-from app.database.models.project import ProjectSource
+from app.database.models.project import Project, ProjectSource
 from app.intelligence.models import ProjectCandidate
 
 

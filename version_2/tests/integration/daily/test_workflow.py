@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.daily.generation import DailyBrief, DailyGenerationService
 from app.daily.workflow import DailyWorkflowService
 from app.database.models.person import Person
@@ -16,6 +14,7 @@ from app.database.models.risk import Risk
 from app.database.models.task import Task
 from app.database.models.user import User
 from app.llm.models import LLMResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class FakeStructuredLLM:
@@ -57,7 +56,7 @@ class FakeStructuredLLM:
 
 
 def _recent_timestamp() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 @pytest.mark.integration
@@ -142,7 +141,7 @@ async def test_daily_workflow_runs_end_to_end(
     result = await workflow.run(
         db_session,
         user_id=user.id,
-        day=datetime.now(timezone.utc).date(),
+        day=datetime.now(UTC).date(),
         timezone_name="UTC",
     )
 
@@ -266,7 +265,7 @@ async def test_daily_workflow_preserves_user_isolation(
     result = await workflow.run(
         db_session,
         user_id=user.id,
-        day=datetime.now(timezone.utc).date(),
+        day=datetime.now(UTC).date(),
         timezone_name="UTC",
     )
 
@@ -325,7 +324,7 @@ async def test_daily_workflow_skips_llm_for_empty_day(
     result = await workflow.run(
         db_session,
         user_id=user.id,
-        day=datetime.now(timezone.utc).date(),
+        day=datetime.now(UTC).date(),
         timezone_name="UTC",
     )
 

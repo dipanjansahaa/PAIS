@@ -1,10 +1,9 @@
 import uuid
 
-from sqlalchemy import inspect
-
 from app.database.base import Base
 from app.database.models.memory import Memory, MemorySource
 from app.database.models.user import User
+from sqlalchemy import inspect
 
 
 def test_memory_table_definition() -> None:

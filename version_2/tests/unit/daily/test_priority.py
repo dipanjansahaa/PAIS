@@ -1,6 +1,6 @@
 """Tests for the deterministic daily priority engine."""
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from uuid import uuid4
 
 from app.daily.models import DailyCommitment, DailyTask

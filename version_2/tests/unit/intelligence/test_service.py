@@ -1,16 +1,14 @@
 """Tests for structured intelligence extraction."""
 
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-
-from datetime import datetime, timezone
-
 from app.intelligence.models import (
+    DecisionCandidate,
     IntelligenceSource,
     StructuredIntelligence,
     TaskCandidate,
-    DecisionCandidate,
 )
 from app.intelligence.service import (
     IntelligenceExtractionService,
@@ -448,8 +446,8 @@ async def test_extraction_preserves_conflicting_tasks():
     chunk_id_1 = uuid4()
     chunk_id_2 = uuid4()
 
-    due_at_1 = datetime(2026, 10, 1, tzinfo=timezone.utc)
-    due_at_2 = datetime(2026, 10, 5, tzinfo=timezone.utc)
+    due_at_1 = datetime(2026, 10, 1, tzinfo=UTC)
+    due_at_2 = datetime(2026, 10, 5, tzinfo=UTC)
 
     results = [
         create_result(

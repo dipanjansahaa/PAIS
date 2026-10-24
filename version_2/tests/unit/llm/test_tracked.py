@@ -1,11 +1,10 @@
 """Unit tests for the tracked LLM provider."""
 
 from datetime import datetime
-from uuid import uuid4
 from unittest.mock import AsyncMock
+from uuid import uuid4
 
 import pytest
-
 from app.llm.models import LLMResponse, Message, TokenUsage
 from app.llm.tracked import TrackedLLMProvider
 from app.observability.models import (

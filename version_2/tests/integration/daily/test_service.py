@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.daily.service import DailyIntelligenceService
 from app.database.models.commitment import Commitment
 from app.database.models.decision import Decision
@@ -16,6 +14,7 @@ from app.database.models.project import Project
 from app.database.models.risk import Risk
 from app.database.models.task import Task
 from app.database.models.user import User
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.integration
@@ -73,7 +72,7 @@ async def test_build_snapshot_respects_user_isolation(
     snapshot = await DailyIntelligenceService().build_snapshot(
         db_session,
         user_id=user.id,
-        day=datetime.now(timezone.utc).date(),
+        day=datetime.now(UTC).date(),
         timezone_name="UTC",
     )
 
@@ -161,7 +160,7 @@ async def test_build_snapshot_uses_local_day_boundaries(
             2026,
             10,
             2,
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         ).date(),
         timezone_name="Asia/Kolkata",
     )
@@ -189,7 +188,7 @@ async def test_build_snapshot_includes_recent_structured_changes(
     db_session.add(user)
     await db_session.flush()
 
-    recent_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    recent_at = datetime.now(UTC).replace(tzinfo=None)
 
     project = Project(
         user_id=user.id,
@@ -247,7 +246,7 @@ async def test_build_snapshot_includes_recent_structured_changes(
     snapshot = await DailyIntelligenceService().build_snapshot(
         db_session,
         user_id=user.id,
-        day=datetime.now(timezone.utc).date(),
+        day=datetime.now(UTC).date(),
         timezone_name="UTC",
     )
 
@@ -279,7 +278,7 @@ async def test_build_snapshot_includes_recent_decisions(
     db_session.add(user)
     await db_session.flush()
 
-    recent_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    recent_at = datetime.now(UTC).replace(tzinfo=None)
 
     decision = Decision(
         user_id=user.id,
@@ -295,7 +294,7 @@ async def test_build_snapshot_includes_recent_decisions(
     snapshot = await DailyIntelligenceService().build_snapshot(
         db_session,
         user_id=user.id,
-        day=datetime.now(timezone.utc).date(),
+        day=datetime.now(UTC).date(),
         timezone_name="UTC",
     )
 

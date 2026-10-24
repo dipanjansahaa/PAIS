@@ -4,8 +4,6 @@ from datetime import datetime
 from uuid import uuid4
 
 import pytest
-from app.llm.models import LLMResponse
-
 from app.daily.context import DailyIntelligenceContext
 from app.daily.enrichment import (
     DailyPersonContext,
@@ -23,6 +21,7 @@ from app.daily.priority import (
     PriorityReason,
     PriorityReasonCode,
 )
+from app.llm.models import LLMResponse
 
 
 class FakeStructuredLLM:

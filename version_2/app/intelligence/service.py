@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from uuid import UUID
 
+from app.intelligence.deduplication import deduplicate_intelligence
 from app.intelligence.models import StructuredIntelligence
-from app.llm.models import LLMResponse, Message
+from app.llm.models import Message
 from app.llm.structured import StructuredLLMProvider
 from app.retrieval.models import RetrievalResult
-from app.intelligence.deduplication import deduplicate_intelligence
-
 
 EXTRACTION_SYSTEM_PROMPT = """\
 You are the structured intelligence extraction component of PAIS.

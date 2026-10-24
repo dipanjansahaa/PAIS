@@ -4,14 +4,13 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from fastapi.testclient import TestClient
-
 from app.api.dependencies import get_current_user, get_db
 from app.api.v1.query import get_query_service
 from app.database.models.user import User
 from app.main import app
 from app.query.context import ContextChunk, ContextSource
 from app.query.models import QueryResult
+from fastapi.testclient import TestClient
 
 
 class FakeQueryService:

@@ -3,13 +3,12 @@
 from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock
 
+from app.api.dependencies import get_db
+from app.api.v1.health import router
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.api.dependencies import get_db
-from app.api.v1.health import router
 
 
 def create_test_app(db: AsyncSession) -> FastAPI:

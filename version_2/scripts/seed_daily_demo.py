@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, time, timedelta, timezone
+from datetime import UTC, datetime, time, timedelta
 from zoneinfo import ZoneInfo
-
-from sqlalchemy import select
 
 from app.database.models.commitment import Commitment
 from app.database.models.decision import Decision
@@ -16,7 +14,7 @@ from app.database.models.risk import Risk
 from app.database.models.task import Task
 from app.database.models.user import User
 from app.database.session import AsyncSessionFactory
-
+from sqlalchemy import select
 
 DEV_AUTH_SUBJECT = "dev-user-local-001"
 TIMEZONE_NAME = "Asia/Kolkata"
@@ -32,7 +30,7 @@ def local_to_database_utc(
 
     local_value = value.replace(tzinfo=zone)
 
-    return local_value.astimezone(timezone.utc).replace(tzinfo=None)
+    return local_value.astimezone(UTC).replace(tzinfo=None)
 
 
 async def get_or_create_project(
@@ -251,7 +249,7 @@ async def seed() -> None:
     local_today = local_now.date()
     local_tomorrow = local_today + timedelta(days=1)
 
-    now_utc = local_now.astimezone(timezone.utc).replace(tzinfo=None)
+    now_utc = local_now.astimezone(UTC).replace(tzinfo=None)
 
     today_morning = local_to_database_utc(
         datetime.combine(local_today, time(10, 0)),

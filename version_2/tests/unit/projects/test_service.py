@@ -1,7 +1,5 @@
 from uuid import uuid4
 
-import pytest
-
 from app.intelligence.models import IntelligenceSource, ProjectCandidate
 from app.projects.models import ProjectStatus
 from app.projects.service import ProjectService

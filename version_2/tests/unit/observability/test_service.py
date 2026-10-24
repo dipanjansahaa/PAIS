@@ -1,14 +1,12 @@
 """Unit tests for model-run observability persistence."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-
 from app.llm.models import LLMResponse, TokenUsage
 from app.observability.models import (
     ModelRunOperation,
-    ModelRunStatus,
 )
 from app.observability.service import ModelRunRecorder
 
@@ -61,7 +59,7 @@ async def test_record_completed_persists_model_run() -> None:
     recorder = ModelRunRecorder(session=session)
 
     user_id = uuid4()
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
 
     response = LLMResponse(
         content="test response",
@@ -126,7 +124,7 @@ async def test_record_completed_handles_missing_usage() -> None:
         operation=ModelRunOperation.QUERY,
         provider="ollama",
         temperature=0.2,
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
         response=response,
         latency_ms=100.0,
     )
@@ -147,7 +145,7 @@ async def test_record_failed_persists_failed_model_run() -> None:
     recorder = ModelRunRecorder(session=session)
 
     user_id = uuid4()
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
     error = TimeoutError("LLM request timed out")
 
     await recorder.record_failed(
@@ -202,7 +200,7 @@ async def test_recorder_failure_does_not_raise() -> None:
         operation=ModelRunOperation.QUERY,
         provider="ollama",
         temperature=0.0,
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
         response=response,
         latency_ms=50.0,
     )

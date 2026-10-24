@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from app.retrieval.models import RetrievalResult
 from app.reranking.base import Reranker
+from app.retrieval.models import RetrievalResult
 
 
 class RerankingService:

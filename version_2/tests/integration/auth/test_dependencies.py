@@ -1,16 +1,13 @@
 """Integration tests for API authentication."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import jwt
 import pytest
-from sqlalchemy import select
-
-from app.core.config import settings
 from app.api.dependencies import get_current_user
+from app.core.config import settings
 from app.database.models.user import User
-
 
 SECRET = "integration-test-secret-that-is-long-enough"
 
@@ -24,7 +21,7 @@ def create_token(
     return jwt.encode(
         {
             "sub": subject,
-            "exp": datetime.now(timezone.utc)
+            "exp": datetime.now(UTC)
             + timedelta(minutes=15),
         },
         SECRET,

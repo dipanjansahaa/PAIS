@@ -2,9 +2,8 @@
 
 import httpx
 import pytest
-from httpx import ASGITransport
-
 from app.main import app
+from httpx import ASGITransport
 
 
 @pytest.mark.asyncio

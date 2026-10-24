@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 from app.daily.models import (
     DailyChange,
@@ -11,8 +12,6 @@ from app.daily.models import (
     DailySnapshot,
 )
 from app.daily.priority import PrioritizedItem
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.daily.enrichment import (
@@ -33,9 +32,9 @@ class DailyIntelligenceContext:
     prioritized_items: tuple[PrioritizedItem, ...]
     recent_decisions: tuple[DailyDecision, ...]
     recent_changes: tuple[DailyChange, ...]
-    recent_projects: tuple["DailyProjectContext", ...] = ()
-    recent_people: tuple["DailyPersonContext", ...] = ()
-    recent_risks: tuple["DailyRiskContext", ...] = ()
+    recent_projects: tuple[DailyProjectContext, ...] = ()
+    recent_people: tuple[DailyPersonContext, ...] = ()
+    recent_risks: tuple[DailyRiskContext, ...] = ()
 
 
 class DailyContextBuilder:

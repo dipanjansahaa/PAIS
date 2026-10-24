@@ -8,24 +8,37 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.llm.base import LLMProvider
 from app.llm.models import Message
+from app.memory.service import MemoryService
 from app.query.context import ContextBuilder
-from app.query.models import QueryResult
+from app.query.models import (
+    QueryMemory,
+    QueryMemorySource,
+    QueryResult,
+)
 from app.retrieval.service import SearchService
-
 
 GROUNDING_SYSTEM_PROMPT = """\
 You are the PAIS knowledge assistant.
 
-Answer the user's question using only the supplied sources.
+Answer the user's question using only the supplied sources and personal memories.
+
+The evidence may contain two distinct kinds of information:
+1. DOCUMENT SOURCES: Retrieved document chunks with citation IDs.
+2. PERSONAL MEMORIES: Saved information about the authenticated user,
+   with memory reference IDs.
 
 Rules:
-- Use only information supported by the supplied sources.
+- Use only information supported by the supplied evidence.
 - Do not invent facts or fill missing information with assumptions.
-- If the sources do not contain enough information to answer the question,
-  clearly state that the available sources are insufficient.
-- When making factual claims, cite the supporting source or chunk using
-  the citation IDs provided in the context.
-- Keep the answer concise and directly address the user's question.
+- Treat personal memories as contextual information, not as document text.
+- Do not imply a personal memory came from a document unless the supplied
+  provenance explicitly supports that claim.
+- Cite document-based factual claims using the provided document chunk IDs,
+  such as [S1-C1].
+- When a claim relies on a personal memory, cite its memory ID, such as [M1].
+- You may cite both kinds of evidence when both support a claim.
+- If the evidence does not contain enough information, clearly state that.
+- Keep the answer concise and directly address the question.
 """
 
 
@@ -38,10 +51,12 @@ class QueryService:
         search_service: SearchService,
         context_builder: ContextBuilder,
         llm_provider: LLMProvider,
+        memory_service: MemoryService | None = None,
     ) -> None:
         self.search_service = search_service
         self.context_builder = context_builder
         self.llm_provider = llm_provider
+        self.memory_service = memory_service
 
     async def query(
         self,
@@ -55,7 +70,7 @@ class QueryService:
         source_type: str | None = None,
         temperature: float = 0.0,
     ) -> QueryResult:
-        """Answer a user query using grounded retrieved context."""
+        """Answer a query using document evidence and personal memory."""
 
         if not query.strip():
             raise ValueError("Query must not be empty.")
@@ -63,6 +78,7 @@ class QueryService:
         if top_k <= 0:
             raise ValueError("top_k must be greater than zero.")
 
+        # Keep existing document retrieval and its filters unchanged.
         retrieval_results = await self.search_service.search(
             session,
             user_id=user_id,
@@ -73,24 +89,67 @@ class QueryService:
             source_type=source_type,
         )
 
-        context = self.context_builder.build(retrieval_results)
+        document_context = self.context_builder.build(retrieval_results)
 
-        if not context.sources:
+        # Memory retrieval is scoped to the authenticated user and
+        # independently respects active status and validity windows.
+        memories: tuple[QueryMemory, ...] = ()
+
+        if self.memory_service is not None:
+            retrieved_memories = await self.memory_service.retrieve_memories(
+                session,
+                user_id=user_id,
+                query=query,
+                limit=10,
+            )
+
+            memories = tuple(
+                QueryMemory(
+                    citation_id=f"M{index}",
+                    memory_id=str(memory.id),
+                    memory_type=memory.memory_type,
+                    content=memory.content,
+                    confidence=memory.confidence,
+                    sources=tuple(
+                        QueryMemorySource(
+                            source_kind=source.source_kind,
+                            document_id=(
+                                str(source.document_id) if source.document_id is not None else None
+                            ),
+                            chunk_id=(
+                                str(source.chunk_id) if source.chunk_id is not None else None
+                            ),
+                            source_reference=source.source_reference,
+                            evidence_text=source.evidence_text,
+                        )
+                        for source in memory.sources
+                    ),
+                )
+                for index, memory in enumerate(
+                    retrieved_memories,
+                    start=1,
+                )
+            )
+
+        # Do not call the LLM without any supporting evidence.
+        if not document_context.sources and not memories:
             return QueryResult(
                 query=query,
                 answer=(
-                    "I don't have enough information in the available "
-                    "sources to answer this question."
+                    "I don't have enough information in the available sources "
+                    "to answer this question."
                 ),
                 sources=(),
                 model=None,
                 latency_ms=None,
                 truncated=False,
+                memories=(),
             )
 
         messages = self._build_messages(
             query=query,
-            context=context.text,
+            document_context=document_context.text,
+            memories=memories,
         )
 
         response = await self.llm_provider.generate(
@@ -98,23 +157,42 @@ class QueryService:
             temperature=temperature,
         )
 
-        return self._build_result(
+        return QueryResult(
             query=query,
-            context=context,
-            response=response,
+            answer=response.content,
+            sources=document_context.sources,
+            model=response.model,
+            latency_ms=response.latency_ms,
+            truncated=document_context.truncated,
+            memories=memories,
         )
 
     @staticmethod
     def _build_messages(
         *,
         query: str,
-        context: str,
+        document_context: str,
+        memories: tuple[QueryMemory, ...] = (),
     ) -> list[Message]:
-        """Build the grounded generation prompt."""
+        """Build a prompt with distinct document and memory evidence."""
+
+        memory_sections = [
+            (f"[{memory.citation_id}]\nType: {memory.memory_type}\nContent: {memory.content}")
+            for memory in memories
+        ]
+
+        memory_context = (
+            "\n\n".join(memory_sections)
+            if memory_sections
+            else "(No relevant personal memories retrieved.)"
+        )
 
         user_prompt = (
-            "SOURCES:\n"
-            f"{context}\n\n"
+            "DOCUMENT SOURCES:\n"
+            f"{document_context or '(No relevant document sources retrieved.)'}"
+            "\n\n"
+            "PERSONAL MEMORIES:\n"
+            f"{memory_context}\n\n"
             "QUESTION:\n"
             f"{query}"
         )
@@ -129,21 +207,3 @@ class QueryService:
                 content=user_prompt,
             ),
         ]
-
-    @staticmethod
-    def _build_result(
-        *,
-        query: str,
-        context,
-        response,
-    ) -> QueryResult:
-        """Convert provider and context results into QueryResult."""
-
-        return QueryResult(
-            query=query,
-            answer=response.content,
-            sources=context.sources,
-            model=response.model,
-            latency_ms=response.latency_ms,
-            truncated=context.truncated,
-        )

@@ -9,11 +9,11 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.daily.context import DailyIntelligenceContext
+from app.daily.models import DailyChange
 from app.database.models.person import Person
 from app.database.models.project import Project
 from app.database.models.risk import Risk
-from app.daily.context import DailyIntelligenceContext
-from app.daily.models import DailyChange
 
 
 @dataclass(frozen=True, slots=True)

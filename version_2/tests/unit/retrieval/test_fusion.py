@@ -1,9 +1,8 @@
 from uuid import uuid4
 
 import pytest
-
-from app.retrieval.models import RetrievalResult
 from app.retrieval.fusion import RRFFusion
+from app.retrieval.models import RetrievalResult
 
 
 def make_result(

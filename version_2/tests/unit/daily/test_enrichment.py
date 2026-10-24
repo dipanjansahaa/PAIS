@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.daily.context import DailyIntelligenceContext
 from app.daily.enrichment import (
     DailyEntityContext,
@@ -20,8 +19,6 @@ from app.daily.models import DailyChange
 from app.database.models.person import Person
 from app.database.models.project import Project
 from app.database.models.risk import Risk
-
-from unittest.mock import AsyncMock, MagicMock
 
 
 def _change(

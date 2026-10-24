@@ -21,7 +21,6 @@ from app.database.models.user import User
 from app.database.session import get_db
 from app.intelligence.read_service import IntelligenceReadService
 
-
 router = APIRouter(
     prefix="/intelligence",
     tags=["intelligence"],

@@ -1,9 +1,7 @@
+from math import log2
 from uuid import uuid4
 
 import pytest
-
-from math import log2
-
 from app.evaluation.retrieval import (
     dcg_at_k,
     mrr,

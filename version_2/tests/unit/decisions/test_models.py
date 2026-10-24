@@ -1,10 +1,9 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
-
 from app.decisions.models import Decision, DecisionSource, DecisionStatus
+from pydantic import ValidationError
 
 
 def test_decision_accepts_valid_values() -> None:
@@ -17,7 +16,7 @@ def test_decision_accepts_valid_values() -> None:
             2026,
             9,
             30,
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         ),
         sources=[
             DecisionSource(chunk_id=uuid4()),

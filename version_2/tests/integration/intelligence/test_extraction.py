@@ -2,37 +2,33 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.api.v1.search import get_search_service
 from app.database.models.document import Document
 from app.database.models.document_chunk import DocumentChunk
+from app.database.models.task import Task, TaskSource
 from app.database.models.user import User
 from app.intelligence.models import (
     IntelligenceSource,
     StructuredIntelligence,
     TaskCandidate,
 )
-from app.intelligence.service import (
-    IntelligenceExtractionService,
-)
-from app.llm.models import LLMResponse
-from app.retrieval.service import SearchService
-from app.api.v1.search import get_search_service
-
-from types import SimpleNamespace
-from unittest.mock import AsyncMock
-
-from sqlalchemy import select
-
-from app.database.models.task import Task, TaskSource
 from app.intelligence.persistence_service import (
     IntelligencePersistenceService,
 )
+from app.intelligence.service import (
+    IntelligenceExtractionService,
+)
 from app.intelligence.workflow import IntelligenceWorkflowService
+from app.llm.models import LLMResponse
+from app.retrieval.service import SearchService
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class FakeStructuredLLM:

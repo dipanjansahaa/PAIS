@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.intelligence.models import StructuredIntelligence
 from app.intelligence.persistence_service import (
     IntelligencePersistenceResult,

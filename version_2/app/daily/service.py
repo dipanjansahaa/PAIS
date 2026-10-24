@@ -2,19 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database.models.commitment import Commitment
-from app.database.models.decision import Decision
-from app.database.models.person import Person
-from app.database.models.project import Project
-from app.database.models.risk import Risk
-from app.database.models.task import Task
 from app.daily.models import (
     DailyChange,
     DailyCommitment,
@@ -22,6 +16,12 @@ from app.daily.models import (
     DailySnapshot,
     DailyTask,
 )
+from app.database.models.commitment import Commitment
+from app.database.models.decision import Decision
+from app.database.models.person import Person
+from app.database.models.project import Project
+from app.database.models.risk import Risk
+from app.database.models.task import Task
 
 
 class DailyIntelligenceService:
@@ -106,10 +106,10 @@ class DailyIntelligenceService:
 
         return (
             DailyIntelligenceService._as_database_utc(
-                local_start.astimezone(timezone.utc)
+                local_start.astimezone(UTC)
             ),
             DailyIntelligenceService._as_database_utc(
-                local_end.astimezone(timezone.utc)
+                local_end.astimezone(UTC)
             ),
         )
 
@@ -362,4 +362,4 @@ class DailyIntelligenceService:
         if value.tzinfo is None:
             raise ValueError("Expected timezone-aware datetime")
 
-        return value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value.astimezone(UTC).replace(tzinfo=None)

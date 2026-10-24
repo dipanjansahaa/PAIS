@@ -3,11 +3,10 @@ from __future__ import annotations
 from io import BytesIO
 
 import pytest
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.database.models.document import Document
 from app.database.models.document_chunk import DocumentChunk
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.asyncio

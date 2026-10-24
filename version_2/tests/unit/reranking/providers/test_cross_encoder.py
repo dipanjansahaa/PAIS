@@ -1,8 +1,7 @@
-from uuid import uuid4
 from unittest.mock import MagicMock, patch
+from uuid import uuid4
 
 import pytest
-
 from app.reranking.providers.local import LocalCrossEncoderReranker
 from app.retrieval.models import RetrievalResult
 

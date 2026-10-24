@@ -1,9 +1,8 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.intelligence.models import IntelligenceSource, TaskCandidate
 from app.tasks.service import TaskService
 
@@ -23,7 +22,7 @@ async def test_create_from_candidate_persists_task_and_sources():
             1,
             12,
             0,
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         ),
         priority="high",
         sources=[

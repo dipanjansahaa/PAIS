@@ -1,9 +1,8 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.commitments.service import CommitmentService
 from app.intelligence.models import CommitmentCandidate, IntelligenceSource
 
@@ -20,7 +19,7 @@ async def test_create_from_candidate_persists_commitment_and_sources():
         2,
         12,
         0,
-        tzinfo=timezone.utc,
+        tzinfo=UTC,
     )
 
     candidate = CommitmentCandidate(

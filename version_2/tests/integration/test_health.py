@@ -6,9 +6,8 @@ Run these tests only when PostgreSQL is available at DATABASE_URL.
 import os
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.main import app
+from fastapi.testclient import TestClient
 
 
 @pytest.mark.integration

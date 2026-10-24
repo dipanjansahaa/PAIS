@@ -1,17 +1,16 @@
 """Integration tests for model-run observability persistence."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select
-
 from app.database.models.model_run import ModelRun
 from app.llm.models import LLMResponse, TokenUsage
 from app.observability.models import (
     ModelRunOperation,
 )
 from app.observability.service import ModelRunRecorder
+from sqlalchemy import select
 
 
 @pytest.mark.asyncio
@@ -24,7 +23,7 @@ async def test_record_completed_persists_model_run(db_session) -> None:
         session=db_session,
     )
 
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
 
     response = LLMResponse(
         content="integration response",
@@ -83,7 +82,7 @@ async def test_record_failed_persists_model_run(db_session) -> None:
         session=db_session,
     )
 
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
     error = TimeoutError("LLM request timed out")
 
     await recorder.record_failed(
@@ -150,7 +149,7 @@ async def test_record_completed_preserves_token_usage(
         operation=ModelRunOperation.QUERY,
         provider="ollama",
         temperature=0.1,
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
         response=response,
         latency_ms=200.0,
     )
@@ -195,7 +194,7 @@ async def test_model_run_preserves_user_and_operation(
         operation=ModelRunOperation.STRUCTURED_INTELLIGENCE,
         provider="ollama",
         temperature=0.0,
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
         response=response,
         latency_ms=75.0,
     )

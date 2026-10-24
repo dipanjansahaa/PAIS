@@ -10,7 +10,6 @@ from pydantic import BaseModel, ValidationError
 from app.llm.base import LLMProvider
 from app.llm.models import LLMResponse, Message
 
-
 StructuredModel = TypeVar(
     "StructuredModel",
     bound=BaseModel,

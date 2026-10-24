@@ -1,7 +1,7 @@
 from uuid import uuid4
 
-from app.risks.models import Risk
 from app.intelligence.models import IntelligenceSource, RiskCandidate
+from app.risks.models import Risk
 
 
 def test_risk_candidate_accepts_valid_data() -> None:

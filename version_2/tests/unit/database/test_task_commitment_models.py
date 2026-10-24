@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.database.models.commitment import Commitment, CommitmentSource
 from app.database.models.task import Task, TaskSource
@@ -103,7 +103,7 @@ def test_task_supports_deadline_and_priority():
         1,
         12,
         0,
-        tzinfo=timezone.utc,
+        tzinfo=UTC,
     )
 
     task = Task(

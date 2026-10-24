@@ -1,7 +1,6 @@
 from uuid import uuid4
 
 import pytest
-
 from app.reranking.providers.fake import FakeReranker
 from app.reranking.service import RerankingService
 from app.retrieval.models import RetrievalResult

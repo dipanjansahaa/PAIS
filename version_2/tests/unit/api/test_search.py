@@ -4,14 +4,12 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from fastapi.testclient import TestClient
-
 from app.api.dependencies import get_current_user, get_db
 from app.api.v1.search import get_search_service
-from app.api.v1.schemas.search import SearchResponse
 from app.database.models.user import User
 from app.main import app
 from app.retrieval.models import RetrievalResult
+from fastapi.testclient import TestClient
 
 
 class FakeSearchService:

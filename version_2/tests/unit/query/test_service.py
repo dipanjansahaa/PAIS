@@ -5,7 +5,6 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-
 from app.llm.models import LLMResponse, TokenUsage
 from app.query.context import ContextBuilder
 from app.query.models import QueryResult
@@ -142,9 +141,7 @@ async def test_query_returns_grounded_answer_and_sources():
 
     assert isinstance(response, QueryResult)
     assert response.query == "What database does the system use?"
-    assert response.answer == (
-        "PostgreSQL is used as the primary database. [S1-C1]"
-    )
+    assert response.answer == ("PostgreSQL is used as the primary database. [S1-C1]")
 
     assert len(response.sources) == 1
     assert response.sources[0].document_id == str(result.document_id)
@@ -271,8 +268,7 @@ async def test_query_does_not_call_llm_without_retrieved_sources():
     )
 
     assert response.answer == (
-        "I don't have enough information in the available "
-        "sources to answer this question."
+        "I don't have enough information in the available sources to answer this question."
     )
 
     assert response.sources == ()

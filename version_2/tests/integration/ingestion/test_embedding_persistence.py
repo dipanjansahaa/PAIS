@@ -1,11 +1,10 @@
 import pytest
-from sqlalchemy import select
-
 from app.database.models.document import Document
 from app.database.models.document_chunk import DocumentChunk
 from app.database.models.user import User
 from app.embeddings.factory import get_embedding_provider
 from app.ingestion.service import IngestionService
+from sqlalchemy import select
 
 
 @pytest.mark.integration

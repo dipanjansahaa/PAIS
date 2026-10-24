@@ -1,12 +1,14 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+
 import jwt
 from app.core.config import settings
+
 
 def generate_local_jwt():
     """
     Generates a local HS256 JWT token for development purposes.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     payload = {
         'sub': 'dev-user-local-001',

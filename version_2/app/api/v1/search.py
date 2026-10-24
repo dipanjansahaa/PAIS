@@ -22,7 +22,6 @@ from app.retrieval.lexical import LexicalRetriever
 from app.retrieval.service import SearchService
 from app.retrieval.vector import VectorRetriever
 
-
 router = APIRouter(
     prefix="/search",
     tags=["search"],

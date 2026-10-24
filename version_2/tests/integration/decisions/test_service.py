@@ -1,10 +1,7 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.database.models.decision import Decision, DecisionSource
 from app.database.models.document import Document
 from app.database.models.document_chunk import DocumentChunk
@@ -12,6 +9,8 @@ from app.database.models.project import Project
 from app.database.models.user import User
 from app.decisions.service import DecisionService
 from app.intelligence.models import DecisionCandidate, IntelligenceSource
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def _create_source_chunks(
@@ -57,7 +56,7 @@ def _candidate(*chunk_ids) -> DecisionCandidate:
             2026,
             10,
             1,
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         ),
         sources=[
             IntelligenceSource(chunk_id=chunk_id)

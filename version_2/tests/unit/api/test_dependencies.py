@@ -1,16 +1,14 @@
 """Unit tests for shared API dependencies."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import jwt
 import pytest
-from fastapi import HTTPException
-from fastapi.security import HTTPAuthorizationCredentials
-
 from app.api.dependencies import get_current_user
 from app.database.models.user import User
-
+from fastapi import HTTPException
+from fastapi.security import HTTPAuthorizationCredentials
 
 SECRET = "test-secret-that-is-long-enough-for-unit-tests"
 
@@ -24,7 +22,7 @@ def create_token(
     return jwt.encode(
         {
             "sub": subject,
-            "exp": datetime.now(timezone.utc)
+            "exp": datetime.now(UTC)
             + timedelta(minutes=15),
         },
         SECRET,

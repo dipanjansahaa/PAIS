@@ -1,9 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models.document_chunk import DocumentChunk
+
 # from app.embeddings.factory import get_embedding_provider
 from app.embeddings.base import EmbeddingProvider
-
 
 # class IngestionService:
 #     def __init__(self) -> None:

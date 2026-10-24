@@ -1,9 +1,8 @@
 """Unit tests for daily intelligence service."""
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 
 import pytest
-
 from app.daily.service import DailyIntelligenceService
 
 

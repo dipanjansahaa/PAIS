@@ -3,17 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-
-from httpx import AsyncClient
-from sqlalchemy import select
 from uuid import uuid4
 
 from app.api.dependencies import get_current_user
 from app.api.v1.query import get_query_service
 from app.api.v1.search import get_search_service
 from app.database.models.user import User
-from app.database.session import get_db
-from app.llm.base import LLMProvider
 from app.llm.models import LLMResponse
 from app.main import app
 from app.query.context import ContextBuilder

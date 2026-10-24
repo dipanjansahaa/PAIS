@@ -1,13 +1,15 @@
 import asyncio
-from sqlalchemy import select, func
-from app.database.session import AsyncSessionFactory
-from app.database.models.user import User
-from app.database.models.task import Task
+
 from app.database.models.commitment import Commitment
 from app.database.models.decision import Decision
-from app.database.models.project import Project
 from app.database.models.person import Person
+from app.database.models.project import Project
 from app.database.models.risk import Risk
+from app.database.models.task import Task
+from app.database.models.user import User
+from app.database.session import AsyncSessionFactory
+from sqlalchemy import func, select
+
 
 async def main():
     async with AsyncSessionFactory() as session:

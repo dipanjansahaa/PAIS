@@ -10,7 +10,6 @@ from app.daily.context import DailyIntelligenceContext
 from app.llm.models import LLMResponse, Message
 from app.llm.structured import StructuredLLMProvider
 
-
 DAILY_GENERATION_SYSTEM_PROMPT = """\
 You are the daily intelligence generation component of PAIS.
 

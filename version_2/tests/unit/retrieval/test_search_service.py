@@ -5,7 +5,6 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-
 from app.retrieval.models import RetrievalResult
 from app.retrieval.service import SearchService
 

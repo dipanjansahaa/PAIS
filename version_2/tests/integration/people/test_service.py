@@ -1,15 +1,14 @@
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.database.models.document import Document
 from app.database.models.document_chunk import DocumentChunk
 from app.database.models.person import Person, PersonSource
 from app.database.models.user import User
 from app.intelligence.models import IntelligenceSource, PersonCandidate
 from app.people.service import PersonService
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def _create_source_chunks(

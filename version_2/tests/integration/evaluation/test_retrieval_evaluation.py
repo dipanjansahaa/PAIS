@@ -1,25 +1,23 @@
 from __future__ import annotations
 
 import pytest
-
 from app.database.models.document import Document
 from app.database.models.document_chunk import DocumentChunk
 from app.database.models.user import User
 from app.embeddings.factory import get_embedding_provider
-from app.evaluation.runner import RetrievalEvaluator
 from app.evaluation.runner import (
     RetrievalEvaluationResult,
     RetrievalEvaluator,
 )
+from app.reranking.providers.local import LocalCrossEncoderReranker
 from app.reranking.service import RerankingService
 from app.retrieval.fusion import RRFFusion
 from app.retrieval.hybrid import HybridRetriever
 from app.retrieval.lexical import LexicalRetriever
-from app.retrieval.vector import VectorRetriever
 from app.retrieval.reranked import RerankedRetriever
+from app.retrieval.vector import VectorRetriever
 from tests.evaluation.retrieval_cases import build_retrieval_cases
 from tests.evaluation.retrieval_dataset import EVALUATION_DOCUMENTS
-from app.reranking.providers.local import LocalCrossEncoderReranker
 
 # DIAGNOSTIC_MODE = True
 DIAGNOSTIC_MODE = False
@@ -135,7 +133,7 @@ def print_evaluation_results(
     k: int,
 ) -> None:
     print()
-    print(f"Evaluation Cases = 15")
+    print("Evaluation Cases = 15")
     print(f"K = {k}")
     print()
     print(

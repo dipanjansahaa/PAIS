@@ -6,9 +6,9 @@ from app.api.v1.daily import router as daily_router
 from app.api.v1.documents import router as documents_router
 from app.api.v1.health import router as health_router
 from app.api.v1.intelligence import router as intelligence_router
+from app.api.v1.memories import router as memories_router
 from app.api.v1.query import router as query_router
 from app.api.v1.search import router as search_router
-from app.api.v1.memories import router as memories_router
 
 api_router = APIRouter()
 

@@ -8,7 +8,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 MemoryType = Literal["fact", "preference", "goal", "constraint"]
 MemoryStatus = Literal["active", "superseded", "expired"]
 

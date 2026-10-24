@@ -1,16 +1,14 @@
 """Unit tests for JWT authentication."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 import pytest
-
 from app.auth.models import AuthenticatedIdentity
 from app.auth.service import (
     AuthenticationError,
     JWTAuthenticator,
 )
-
 
 SECRET = "test-secret-that-is-long-enough-for-unit-tests"
 
@@ -26,7 +24,7 @@ def create_token(
 
     payload = {
         "sub": subject,
-        "exp": datetime.now(timezone.utc) + expires_delta,
+        "exp": datetime.now(UTC) + expires_delta,
     }
 
     if issuer is not None:
@@ -102,7 +100,7 @@ def test_authenticate_rejects_missing_subject() -> None:
     """Tokens without a subject must be rejected."""
 
     payload = {
-        "exp": datetime.now(timezone.utc)
+        "exp": datetime.now(UTC)
         + timedelta(minutes=15),
     }
 

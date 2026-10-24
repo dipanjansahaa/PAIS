@@ -7,11 +7,9 @@ from uuid import uuid4
 import httpx
 import pytest
 import pytest_asyncio
-from httpx import ASGITransport
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.dependencies import get_current_user, get_db
 from app.api.v1.query import get_query_service
+from app.api.v1.search import get_search_service
 from app.database.models.document import Document
 from app.database.models.document_chunk import DocumentChunk
 from app.database.models.project import Project
@@ -20,7 +18,8 @@ from app.llm.models import LLMResponse
 from app.main import app
 from app.query.context import ContextBuilder
 from app.query.service import QueryService
-from app.api.v1.search import get_search_service
+from httpx import ASGITransport
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class FakeQueryLLM:

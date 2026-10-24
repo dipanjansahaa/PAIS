@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import unicodedata
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 from typing import TypeVar
 
 from app.intelligence.models import (
@@ -16,7 +16,6 @@ from app.intelligence.models import (
     StructuredIntelligence,
     TaskCandidate,
 )
-
 
 Candidate = TypeVar(
     "Candidate",

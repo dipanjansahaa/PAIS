@@ -13,11 +13,11 @@ if TYPE_CHECKING:
     from app.database.models.commitment import Commitment
     from app.database.models.decision import Decision
     from app.database.models.document import Document
-    from app.database.models.project import Project
-    from app.database.models.task import Task
-    from app.database.models.person import Person
-    from app.database.models.risk import Risk
     from app.database.models.memory import Memory
+    from app.database.models.person import Person
+    from app.database.models.project import Project
+    from app.database.models.risk import Risk
+    from app.database.models.task import Task
 
 
 class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):

@@ -5,9 +5,6 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.commitments.service import CommitmentService
 from app.database.models.commitment import Commitment, CommitmentSource
 from app.database.models.document import Document
@@ -17,6 +14,8 @@ from app.intelligence.models import (
     CommitmentCandidate,
     IntelligenceSource,
 )
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.asyncio

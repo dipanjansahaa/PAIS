@@ -1,8 +1,7 @@
-from sqlalchemy import inspect
-
 from app.database.base import Base
 from app.database.models.project import Project
 from app.database.models.user import User
+from sqlalchemy import inspect
 
 
 def test_user_table_definition() -> None:

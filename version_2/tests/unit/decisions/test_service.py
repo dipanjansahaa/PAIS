@@ -1,9 +1,8 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.decisions.service import DecisionService
 from app.intelligence.models import DecisionCandidate, IntelligenceSource
 
@@ -16,7 +15,7 @@ def _candidate(*chunk_ids):
             2026,
             9,
             30,
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         ),
         sources=[
             IntelligenceSource(chunk_id=chunk_id)

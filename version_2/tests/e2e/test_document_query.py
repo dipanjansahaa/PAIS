@@ -3,16 +3,15 @@ from __future__ import annotations
 from io import BytesIO
 
 import pytest
-from sqlalchemy import select
-
-from app.api.v1.search import get_search_service
 from app.api.v1.query import get_query_service
+from app.api.v1.search import get_search_service
 from app.database.models.document import Document
 from app.database.models.document_chunk import DocumentChunk
 from app.llm.models import LLMResponse
 from app.main import app
 from app.query.context import ContextBuilder
 from app.query.service import QueryService
+from sqlalchemy import select
 
 
 class FakeE2EQueryLLM:

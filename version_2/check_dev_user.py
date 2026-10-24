@@ -1,7 +1,9 @@
 import asyncio
-from sqlalchemy import select
-from app.database.session import AsyncSessionFactory
+
 from app.database.models.user import User
+from app.database.session import AsyncSessionFactory
+from sqlalchemy import select
+
 
 async def main():
     async with AsyncSessionFactory() as session:

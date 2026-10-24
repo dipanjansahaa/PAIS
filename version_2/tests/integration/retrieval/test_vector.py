@@ -1,11 +1,10 @@
 import pytest
-
 from app.database.models.document import Document
 from app.database.models.document_chunk import DocumentChunk
+from app.database.models.project import Project
 from app.database.models.user import User
 from app.embeddings.base import EmbeddingProvider
 from app.retrieval.vector import VectorRetriever
-from app.database.models.project import Project
 
 
 class FakeEmbeddingProvider(EmbeddingProvider):

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from sentence_transformers import CrossEncoder
-
 from app.core.config import settings
-from app.retrieval.models import RetrievalResult
 from app.reranking.base import Reranker
+from app.retrieval.models import RetrievalResult
+from sentence_transformers import CrossEncoder
 
 
 class LocalCrossEncoderReranker(Reranker):

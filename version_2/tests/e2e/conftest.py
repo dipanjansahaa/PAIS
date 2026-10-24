@@ -4,9 +4,6 @@ from uuid import uuid4
 
 import httpx
 import pytest_asyncio
-from httpx import ASGITransport
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.dependencies import get_current_user, get_db
 from app.api.v1.documents import (
     get_document_ingestion_service,
@@ -40,6 +37,8 @@ from app.retrieval.hybrid import HybridRetriever
 from app.retrieval.lexical import LexicalRetriever
 from app.retrieval.service import SearchService
 from app.retrieval.vector import VectorRetriever
+from httpx import ASGITransport
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class DeterministicEmbeddingProvider(EmbeddingProvider):

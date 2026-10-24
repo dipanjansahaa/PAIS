@@ -5,15 +5,14 @@ from uuid import uuid4
 import httpx
 import pytest
 import pytest_asyncio
-from httpx import ASGITransport
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.dependencies import get_current_user, get_db
 from app.database.models.document import Document
 from app.database.models.document_chunk import DocumentChunk
 from app.database.models.project import Project
 from app.database.models.user import User
 from app.main import app
+from httpx import ASGITransport
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest_asyncio.fixture

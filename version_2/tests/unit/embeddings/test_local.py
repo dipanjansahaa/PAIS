@@ -1,5 +1,4 @@
 import pytest
-
 from app.embeddings.providers.local import LocalEmbeddingProvider
 
 

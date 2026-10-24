@@ -2,30 +2,28 @@
 
 from __future__ import annotations
 
-# from functools import lru_cache
-
 from fastapi import APIRouter, Depends
-from app.core.config import settings
-from app.llm.tracked import TrackedLLMProvider
-from app.observability.models import ModelRunOperation
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user
 from app.api.v1.schemas.query import (
     QueryChunkResponse,
+    QueryMemoryResponse,
+    QueryMemorySourceResponse,
     QueryRequest,
     QueryResponse,
     QuerySourceResponse,
 )
+from app.api.v1.search import get_search_service
+from app.core.config import settings
 from app.database.models.user import User
 from app.database.session import get_db
 from app.llm.factory import get_llm_provider
+from app.llm.tracked import TrackedLLMProvider
+from app.memory.service import MemoryService
+from app.observability.models import ModelRunOperation
 from app.query.context import ContextBuilder
 from app.query.service import QueryService
-from app.retrieval.service import SearchService
-from app.api.v1.search import get_search_service
-
 
 router = APIRouter(
     prefix="/query",
@@ -54,6 +52,7 @@ def get_query_service(
         search_service=search_service,
         context_builder=context_builder,
         llm_provider=llm_provider,
+        memory_service=MemoryService(),
     )
 
 
@@ -67,7 +66,7 @@ async def query(
     current_user: User = Depends(get_current_user),
     query_service: QueryService = Depends(get_query_service),
 ) -> QueryResponse:
-    """Answer a user query using grounded retrieved context."""
+    """Answer a user query using document and memory evidence."""
 
     result = await query_service.query(
         db_session,
@@ -100,6 +99,26 @@ async def query(
                 ],
             )
             for source in result.sources
+        ],
+        memories=[
+            QueryMemoryResponse(
+                citation_id=memory.citation_id,
+                memory_id=memory.memory_id,
+                memory_type=memory.memory_type,
+                content=memory.content,
+                confidence=memory.confidence,
+                sources=[
+                    QueryMemorySourceResponse(
+                        source_kind=source.source_kind,
+                        document_id=source.document_id,
+                        chunk_id=source.chunk_id,
+                        source_reference=source.source_reference,
+                        evidence_text=source.evidence_text,
+                    )
+                    for source in memory.sources
+                ],
+            )
+            for memory in result.memories
         ],
         model=result.model,
         latency_ms=result.latency_ms,

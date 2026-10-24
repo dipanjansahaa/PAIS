@@ -48,9 +48,7 @@ class ContextBuilder:
         max_context_tokens: int = 3000,
     ) -> None:
         if max_context_tokens <= 0:
-            raise ValueError(
-                "max_context_tokens must be greater than zero."
-            )
+            raise ValueError("max_context_tokens must be greater than zero.")
 
         self.max_context_tokens = max_context_tokens
 
@@ -98,14 +96,9 @@ class ContextBuilder:
                     metadata=result.metadata,
                 )
 
-                chunk_tokens = self._estimate_tokens(
-                    result.content
-                )
+                chunk_tokens = self._estimate_tokens(result.content)
 
-                if (
-                    estimated_tokens + chunk_tokens
-                    > self.max_context_tokens
-                ):
+                if estimated_tokens + chunk_tokens > self.max_context_tokens:
                     truncated = True
                     break
 
@@ -190,14 +183,8 @@ class ContextBuilder:
             chunk_sections = []
 
             for chunk in source.chunks:
-                chunk_sections.append(
-                    f"[{chunk.citation_id}]\n"
-                    f"{chunk.content}"
-                )
+                chunk_sections.append(f"[{chunk.citation_id}]\n{chunk.content}")
 
-            sections.append(
-                f"[{source.citation_id}]\n"
-                + "\n\n".join(chunk_sections)
-            )
+            sections.append(f"[{source.citation_id}]\n" + "\n\n".join(chunk_sections))
 
         return "\n\n".join(sections)

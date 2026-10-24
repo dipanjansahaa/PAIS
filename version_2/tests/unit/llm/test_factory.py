@@ -1,7 +1,6 @@
 """Tests for the LLM provider factory."""
 
 import pytest
-
 from app.core.config import settings
 from app.llm.factory import get_llm_provider
 from app.llm.providers.ollama import OllamaProvider

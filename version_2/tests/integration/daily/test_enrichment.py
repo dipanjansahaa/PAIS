@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.daily.context import DailyIntelligenceContext
 from app.daily.enrichment import DailyEntityContextEnricher
 from app.daily.models import DailyChange
@@ -15,6 +13,7 @@ from app.database.models.person import Person
 from app.database.models.project import Project
 from app.database.models.risk import Risk
 from app.database.models.user import User
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def _context(
@@ -27,14 +26,14 @@ def _context(
         2026,
         10,
         1,
-        tzinfo=timezone.utc,
+        tzinfo=UTC,
     )
 
     window_end = datetime(
         2026,
         10,
         2,
-        tzinfo=timezone.utc,
+        tzinfo=UTC,
     )
 
     return DailyIntelligenceContext(

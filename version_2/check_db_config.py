@@ -1,5 +1,5 @@
-from sqlalchemy.engine import make_url
 from app.core.config import settings
+from sqlalchemy.engine import make_url
 
 url = make_url(settings.database_url)
 print("Environment: HOST")

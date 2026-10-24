@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import pytest
-
 from app.database.models.document import Document
 from app.database.models.document_chunk import DocumentChunk
+from app.database.models.project import Project
 from app.database.models.user import User
+from app.retrieval.fusion import RRFFusion
 from app.retrieval.hybrid import HybridRetriever
 from app.retrieval.lexical import LexicalRetriever
 from app.retrieval.models import RetrievalResult
 from app.retrieval.vector import VectorRetriever
-from app.database.models.project import Project
-from app.retrieval.fusion import RRFFusion
 
 
 class FakeEmbeddingProvider:

@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from datetime import date
+
 # from functools import lru_cache
 from typing import Annotated
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, Query
-from app.llm.tracked import TrackedLLMProvider
-from app.observability.models import ModelRunOperation
 from pydantic import AfterValidator
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,7 +21,8 @@ from app.database.models.user import User
 from app.database.session import get_db
 from app.llm.factory import get_llm_provider
 from app.llm.structured import StructuredLLMProvider
-
+from app.llm.tracked import TrackedLLMProvider
+from app.observability.models import ModelRunOperation
 
 router = APIRouter(
     prefix="/daily",

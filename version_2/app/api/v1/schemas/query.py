@@ -27,6 +27,7 @@ class QueryRequest(BaseModel):
     @classmethod
     def validate_query(cls, value: str) -> str:
         """Normalize and validate the query."""
+
         value = value.strip()
 
         if not value:
@@ -36,7 +37,7 @@ class QueryRequest(BaseModel):
 
 
 class QueryChunkResponse(BaseModel):
-    """Retrieved chunk used as grounding context."""
+    """Retrieved document chunk used as grounding context."""
 
     citation_id: str
     chunk_id: UUID
@@ -54,12 +55,34 @@ class QuerySourceResponse(BaseModel):
     chunks: list[QueryChunkResponse]
 
 
+class QueryMemorySourceResponse(BaseModel):
+    """Provenance attached to a memory used in an answer."""
+
+    source_kind: str
+    document_id: UUID | None
+    chunk_id: UUID | None
+    source_reference: str | None
+    evidence_text: str | None
+
+
+class QueryMemoryResponse(BaseModel):
+    """Personal memory used as query evidence."""
+
+    citation_id: str
+    memory_id: UUID
+    memory_type: str
+    content: str
+    confidence: float | None
+    sources: list[QueryMemorySourceResponse]
+
+
 class QueryResponse(BaseModel):
     """Grounded query API response."""
 
     query: str
     answer: str
     sources: list[QuerySourceResponse]
+    memories: list[QueryMemoryResponse] = Field(default_factory=list)
     model: str | None
     latency_ms: float | None
     truncated: bool

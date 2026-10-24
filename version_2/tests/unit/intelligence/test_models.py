@@ -4,8 +4,6 @@ from datetime import datetime
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
-
 from app.intelligence.models import (
     CommitmentCandidate,
     DecisionCandidate,
@@ -13,6 +11,7 @@ from app.intelligence.models import (
     StructuredIntelligence,
     TaskCandidate,
 )
+from pydantic import ValidationError
 
 
 def test_task_candidate_requires_source():

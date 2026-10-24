@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import pytest
-
 from app.database.models.document import Document
 from app.database.models.document_chunk import DocumentChunk
+from app.database.models.project import Project
 from app.database.models.user import User
 from app.retrieval.lexical import LexicalRetriever
 from app.retrieval.models import RetrievalResult
-from app.database.models.project import Project
 
 
 @pytest.fixture

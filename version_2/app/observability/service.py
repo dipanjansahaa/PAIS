@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models.model_run import ModelRun
 from app.llm.models import LLMResponse
@@ -14,7 +14,6 @@ from app.observability.models import (
     ModelRunOperation,
     ModelRunStatus,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +68,7 @@ class ModelRunRecorder:
             latency_ms=latency_ms,
             finish_reason=response.finish_reason,
             started_at=started_at,
-            completed_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(UTC),
             error_type=None,
         )
 
@@ -99,7 +98,7 @@ class ModelRunRecorder:
             latency_ms=latency_ms,
             finish_reason=None,
             started_at=started_at,
-            completed_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(UTC),
             error_type=type(error).__name__,
         )
 

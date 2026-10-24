@@ -1,25 +1,23 @@
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from io import BytesIO
 
 import pytest
-from sqlalchemy import select
-
 from app.api.v1.daily import get_daily_workflow_service
 from app.api.v1.search import get_search_service
 from app.commitments.service import CommitmentService
-from app.decisions.service import DecisionService
+from app.daily.generation import DailyBrief, DailyGenerationService
+from app.daily.workflow import DailyWorkflowService
 from app.database.models.commitment import Commitment
 from app.database.models.decision import Decision
+from app.database.models.document_chunk import DocumentChunk
 from app.database.models.person import Person
 from app.database.models.project import Project
 from app.database.models.risk import Risk
 from app.database.models.task import Task
-from app.database.models.document_chunk import DocumentChunk
-from app.daily.generation import DailyBrief, DailyGenerationService
-from app.daily.workflow import DailyWorkflowService
+from app.decisions.service import DecisionService
 from app.intelligence.models import (
     CommitmentCandidate,
     DecisionCandidate,
@@ -38,7 +36,7 @@ from app.people.service import PersonService
 from app.projects.service import ProjectService
 from app.risks.service import RiskService
 from app.tasks.service import TaskService
-
+from sqlalchemy import select
 
 E2E_DAY = date(2026, 10, 3)
 

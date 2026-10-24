@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import logging
+from datetime import UTC, datetime
 from time import perf_counter
 from uuid import UUID
 
-import logging
 logger = logging.getLogger(__name__)
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database.session import AsyncSessionFactory
 from app.llm.base import LLMProvider
 from app.llm.models import LLMResponse, Message
 from app.observability.models import ModelRunOperation
@@ -58,7 +57,7 @@ class TrackedLLMProvider(LLMProvider):
     ) -> LLMResponse:
         """Generate a response and record its execution metadata."""
 
-        started_at = datetime.now(timezone.utc)
+        started_at = datetime.now(UTC)
         started_perf = perf_counter()
 
         try:

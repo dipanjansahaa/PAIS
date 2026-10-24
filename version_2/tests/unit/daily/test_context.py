@@ -11,7 +11,6 @@ from app.daily.models import (
     DailyChange,
     DailyDecision,
     DailySnapshot,
-    DailyTask,
 )
 from app.daily.priority import (
     PrioritizedItem,

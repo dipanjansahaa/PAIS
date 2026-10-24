@@ -1,5 +1,4 @@
 import pytest
-
 from app.ingestion.chunker import DocumentChunker, TextChunk
 
 

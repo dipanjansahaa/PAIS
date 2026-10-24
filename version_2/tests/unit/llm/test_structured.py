@@ -1,16 +1,14 @@
 """Tests for structured LLM generation."""
 
 from dataclasses import dataclass
-from uuid import uuid4
 
 import pytest
-from pydantic import BaseModel, Field
-
 from app.llm.models import LLMResponse
 from app.llm.structured import (
     StructuredLLMError,
     StructuredLLMProvider,
 )
+from pydantic import BaseModel, Field
 
 
 class ExampleSchema(BaseModel):

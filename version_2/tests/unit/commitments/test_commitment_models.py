@@ -4,9 +4,8 @@ from datetime import datetime
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
-
 from app.commitments.models import Commitment, CommitmentSource, CommitmentStatus
+from pydantic import ValidationError
 
 
 def test_commitment_stores_domain_fields() -> None:

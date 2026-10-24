@@ -1,5 +1,4 @@
 import pytest
-
 from app.ingestion.normalizer import DocumentNormalizer
 
 
