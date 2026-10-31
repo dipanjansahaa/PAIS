@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
@@ -321,3 +322,71 @@ async def test_add_sources_rejects_empty_list() -> None:
         )
 
     session.scalar.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_create_relationship_rejects_naive_validity_timestamp() -> None:
+    session = _session()
+
+    with pytest.raises(
+        ValueError,
+        match="valid_from must be timezone-aware",
+    ):
+        await RelationshipService().create_relationship(
+            session,
+            user_id=uuid4(),
+            source_type="project",
+            source_id=uuid4(),
+            relationship_type="related_to",
+            target_type="person",
+            target_id=uuid4(),
+            valid_from=datetime(2026, 10, 31, 12, 0, 0),
+        )
+
+    session.scalar.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_create_relationship_rejects_invalid_validity_interval() -> None:
+    session = _session()
+
+    with pytest.raises(
+        ValueError,
+        match="valid_until must be later than valid_from",
+    ):
+        await RelationshipService().create_relationship(
+            session,
+            user_id=uuid4(),
+            source_type="project",
+            source_id=uuid4(),
+            relationship_type="related_to",
+            target_type="person",
+            target_id=uuid4(),
+            valid_from=datetime(2026, 10, 31, 12, 0, tzinfo=timezone.utc),
+            valid_until=datetime(2026, 10, 31, 12, 0, tzinfo=timezone.utc),
+        )
+
+    session.scalar.assert_not_awaited()
+
+
+def test_relationship_service_accepts_valid_timezone_aware_interval() -> None:
+    valid_from = datetime(2026, 10, 31, 12, 0, tzinfo=timezone.utc)
+    valid_until = datetime(2026, 10, 31, 13, 0, tzinfo=timezone.utc)
+
+    RelationshipService._validate_validity_interval(valid_from, valid_until)
+
+@pytest.mark.asyncio
+async def test_list_for_entity_rejects_naive_as_of() -> None:
+    session = _session()
+
+    with pytest.raises(ValueError, match="as_of must be timezone-aware"):
+        await RelationshipService().list_for_entity(
+            session,
+            user_id=uuid4(),
+            entity_type="project",
+            entity_id=uuid4(),
+            as_of=datetime(2026, 10, 31, 12, 0, 0),
+        )
+
+    session.scalar.assert_not_awaited()
+    session.scalars.assert_not_awaited()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import or_, select
@@ -54,6 +55,8 @@ class RelationshipService:
         relationship_type: str,
         target_type: str,
         target_id: UUID,
+        valid_from: datetime | None = None,
+        valid_until: datetime | None = None,
     ) -> KnowledgeRelationship:
         """Create a directed relationship, returning an existing duplicate."""
         self._validate_entity_type(source_type)
@@ -62,6 +65,7 @@ class RelationshipService:
         self._validate_uuid(user_id, "user_id")
         self._validate_uuid(source_id, "source_id")
         self._validate_uuid(target_id, "target_id")
+        self._validate_validity_interval(valid_from, valid_until)
 
         if source_type == target_type and source_id == target_id:
             raise ValueError("A relationship cannot reference itself.")
@@ -90,6 +94,13 @@ class RelationshipService:
             )
         )
         if existing is not None:
+            if valid_from is not None or valid_until is not None:
+                if existing.valid_from != valid_from or existing.valid_until != valid_until:
+                    raise ValueError(
+                        "Relationship already exists with a different validity interval; "
+                        "updating relationship validity is not supported."
+                    )
+
             return existing
 
         # The database uniqueness constraint is the concurrency-safe source of
@@ -104,6 +115,8 @@ class RelationshipService:
                 relationship_type=relationship_type,
                 target_type=target_type,
                 target_id=target_id,
+                valid_from=valid_from,
+                valid_until=valid_until,
             )
             .on_conflict_do_nothing(constraint="uq_knowledge_relationships_directed_edge")
         )
@@ -123,6 +136,12 @@ class RelationshipService:
         if persisted is None:
             # Defensive: a successful insert or conflict should leave this row.
             raise RuntimeError("Relationship insert completed without a persisted relationship.")
+        if valid_from is not None or valid_until is not None:
+            if persisted.valid_from != valid_from or persisted.valid_until != valid_until:
+                raise ValueError(
+                    "Relationship already exists with a different validity interval; "
+                    "updating relationship validity is not supported."
+                )
         return persisted
 
     async def get_relationship(
@@ -150,13 +169,23 @@ class RelationshipService:
         entity_type: str,
         entity_id: UUID,
         limit: int = 100,
+        as_of: datetime | None = None,
     ) -> list[KnowledgeRelationship]:
-        """List incoming and outgoing relationships for a user-owned entity."""
+        """List a user's incoming and outgoing relationships.
+
+        Without ``as_of``, preserve the existing behavior and return edges
+        regardless of their validity interval. When ``as_of`` is supplied,
+        return edges whose stored validity interval includes that instant,
+        using start-inclusive/end-exclusive boundaries. Missing boundaries
+        permit candidate matching but do not prove indefinite validity.
+        """
         self._validate_entity_type(entity_type)
         self._validate_uuid(user_id, "user_id")
         self._validate_uuid(entity_id, "entity_id")
         if not 1 <= limit <= 100:
             raise ValueError("limit must be between 1 and 100.")
+        if as_of is not None:
+            self._validate_as_of(as_of)
 
         await self._validate_endpoint(
             session,
@@ -164,26 +193,36 @@ class RelationshipService:
             entity_type=entity_type,
             entity_id=entity_id,
         )
-        result = await session.scalars(
-            select(KnowledgeRelationship)
-            .where(
-                KnowledgeRelationship.user_id == user_id,
+        statement = select(KnowledgeRelationship).where(
+            KnowledgeRelationship.user_id == user_id,
+            or_(
+                (
+                    (KnowledgeRelationship.source_type == entity_type)
+                    & (KnowledgeRelationship.source_id == entity_id)
+                ),
+                (
+                    (KnowledgeRelationship.target_type == entity_type)
+                    & (KnowledgeRelationship.target_id == entity_id)
+                ),
+            ),
+        )
+        if as_of is not None:
+            statement = statement.where(
                 or_(
-                    (
-                        (KnowledgeRelationship.source_type == entity_type)
-                        & (KnowledgeRelationship.source_id == entity_id)
-                    ),
-                    (
-                        (KnowledgeRelationship.target_type == entity_type)
-                        & (KnowledgeRelationship.target_id == entity_id)
-                    ),
+                    KnowledgeRelationship.valid_from.is_(None),
+                    KnowledgeRelationship.valid_from <= as_of,
+                ),
+                or_(
+                    KnowledgeRelationship.valid_until.is_(None),
+                    KnowledgeRelationship.valid_until > as_of,
                 ),
             )
-            .order_by(
+
+        result = await session.scalars(
+            statement.order_by(
                 KnowledgeRelationship.created_at.desc(),
                 KnowledgeRelationship.id,
-            )
-            .limit(limit)
+            ).limit(limit)
         )
         return list(result.all())
 
@@ -266,6 +305,14 @@ class RelationshipService:
         return [persisted_by_chunk[chunk_id] for chunk_id in unique_chunk_ids]
 
     @staticmethod
+    def _validate_as_of(as_of: datetime) -> None:
+        """Reject ambiguous timestamps for historical instant comparisons."""
+        if not isinstance(as_of, datetime):
+            raise ValueError("as_of must be a datetime.")
+        if as_of.tzinfo is None or as_of.utcoffset() is None:
+            raise ValueError("as_of must be timezone-aware.")
+
+    @staticmethod
     def _validate_entity_type(entity_type: str) -> None:
         if entity_type not in KNOWLEDGE_ENTITY_TYPES:
             raise ValueError("Unsupported knowledge entity type.")
@@ -317,3 +364,26 @@ class RelationshipService:
                 seen.add(value)
                 unique_values.append(value)
         return unique_values
+
+    @staticmethod
+    def _validate_validity_interval(
+        valid_from: datetime | None,
+        valid_until: datetime | None,
+    ) -> None:
+        """Validate an optional relationship validity interval."""
+
+        for field_name, value in (
+            ("valid_from", valid_from),
+            ("valid_until", valid_until),
+        ):
+            if value is None:
+                continue
+
+            if not isinstance(value, datetime):
+                raise ValueError(f"{field_name} must be a datetime or None.")
+
+            if value.tzinfo is None or value.utcoffset() is None:
+                raise ValueError(f"{field_name} must be timezone-aware.")
+
+        if valid_from is not None and valid_until is not None and valid_until <= valid_from:
+            raise ValueError("valid_until must be later than valid_from.")

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user
@@ -10,6 +10,8 @@ from app.api.v1.schemas.query import (
     QueryChunkResponse,
     QueryMemoryResponse,
     QueryMemorySourceResponse,
+    QueryRelationshipResponse,
+    QueryRelationshipSourceResponse,
     QueryRequest,
     QueryResponse,
     QuerySourceResponse,
@@ -23,7 +25,7 @@ from app.llm.tracked import TrackedLLMProvider
 from app.memory.service import MemoryService
 from app.observability.models import ModelRunOperation
 from app.query.context import ContextBuilder
-from app.query.service import QueryService
+from app.query.service import QueryEntityNotFoundError, QueryService
 
 router = APIRouter(
     prefix="/query",
@@ -68,16 +70,26 @@ async def query(
 ) -> QueryResponse:
     """Answer a user query using document and memory evidence."""
 
-    result = await query_service.query(
-        db_session,
-        user_id=current_user.id,
-        query=request.query,
-        top_k=request.top_k,
-        project_id=request.project_id,
-        document_id=request.document_id,
-        source_type=request.source_type,
-        temperature=request.temperature,
-    )
+    try:
+        result = await query_service.query(
+            db_session,
+            user_id=current_user.id,
+            query=request.query,
+            top_k=request.top_k,
+            project_id=request.project_id,
+            document_id=request.document_id,
+            source_type=request.source_type,
+            temperature=request.temperature,
+            as_of=request.as_of,
+            entity_type=request.entity_type,
+            entity_id=request.entity_id,
+        )
+    except QueryEntityNotFoundError as exc:
+        # Do not reveal whether a seed entity exists for another user.
+        raise HTTPException(
+            status_code=404,
+            detail=("Entity does not exist or does not belong to the authenticated user."),
+        ) from exc
 
     return QueryResponse(
         query=result.query,
@@ -106,6 +118,9 @@ async def query(
                 memory_id=memory.memory_id,
                 memory_type=memory.memory_type,
                 content=memory.content,
+                status=memory.status,
+                valid_from=memory.valid_from,
+                valid_until=memory.valid_until,
                 confidence=memory.confidence,
                 sources=[
                     QueryMemorySourceResponse(
@@ -119,6 +134,32 @@ async def query(
                 ],
             )
             for memory in result.memories
+        ],
+        relationships=[
+            QueryRelationshipResponse(
+                citation_id=relationship.citation_id,
+                relationship_id=relationship.relationship_id,
+                source_type=relationship.source_type,
+                source_id=relationship.source_id,
+                source_label=relationship.source_label,
+                relationship_type=relationship.relationship_type,
+                target_type=relationship.target_type,
+                target_id=relationship.target_id,
+                target_label=relationship.target_label,
+                valid_from=relationship.valid_from,
+                valid_until=relationship.valid_until,
+                sources=[
+                    QueryRelationshipSourceResponse(
+                        citation_id=source.citation_id,
+                        chunk_id=source.chunk_id,
+                        document_id=source.document_id,
+                        document_title=source.document_title,
+                        content=source.content,
+                    )
+                    for source in relationship.sources
+                ],
+            )
+            for relationship in result.relationships
         ],
         model=result.model,
         latency_ms=result.latency_ms,

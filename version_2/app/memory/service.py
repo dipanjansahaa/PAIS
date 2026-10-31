@@ -38,10 +38,18 @@ class MemoryService:
         limit: int = 10,
         as_of: datetime | None = None,
     ) -> list[Memory]:
-        """Retrieve currently valid memories relevant to a query.
+        """Retrieve memories relevant to a query at the requested valid time.
 
-        Retrieval is always scoped to the supplied user. Only active
-        memories whose validity window includes ``as_of`` are returned.
+        Retrieval is always scoped to the supplied user. Without ``as_of``,
+        only active memories whose validity window includes the current UTC
+        instant are returned. With an explicit ``as_of``, lifecycle status is
+        not used as a proxy for historical validity: active, superseded, and
+        expired records are candidates only when their stored validity window
+        includes that instant.
+
+        A missing validity boundary is treated as an unbounded side for
+        candidate matching, not as proof that the memory was valid indefinitely.
+        The caller must preserve that uncertainty when presenting results.
 
         When a query is supplied, results are ranked by lexical relevance,
         confidence, and recency. Without a query, results are ordered by
@@ -58,24 +66,30 @@ class MemoryService:
             if invalid_types:
                 raise ValueError("Unsupported memory type.")
 
-        now = as_of or datetime.now(UTC)
+        if as_of is not None:
+            self._validate_as_of(as_of)
+            reference_time = as_of
+        else:
+            reference_time = datetime.now(UTC)
 
-        statement = (
-            select(Memory)
-            .options(selectinload(Memory.sources))
-            .where(
-                Memory.user_id == user_id,
-                Memory.status == "active",
-                or_(
-                    Memory.valid_from.is_(None),
-                    Memory.valid_from <= now,
-                ),
-                or_(
-                    Memory.valid_until.is_(None),
-                    Memory.valid_until > now,
-                ),
-            )
+        statement = select(Memory).options(selectinload(Memory.sources)).where(
+            Memory.user_id == user_id,
+            or_(
+                Memory.valid_from.is_(None),
+                Memory.valid_from <= reference_time,
+            ),
+            or_(
+                Memory.valid_until.is_(None),
+                Memory.valid_until > reference_time,
+            ),
         )
+
+        # Lifecycle status describes the currently stored state. It must not
+        # erase a memory from an explicitly requested historical valid-time
+        # lookup. Current-state retrieval retains the established active-only
+        # behavior.
+        if as_of is None:
+            statement = statement.where(Memory.status == "active")
 
         if memory_types:
             statement = statement.where(Memory.memory_type.in_(memory_types))
@@ -121,6 +135,14 @@ class MemoryService:
         relevant_memories = [memory for memory in memories if relevance_key(memory)[0] > 0.0]
 
         return relevant_memories[:limit]
+
+    @staticmethod
+    def _validate_as_of(as_of: datetime) -> None:
+        """Reject ambiguous timestamps for historical instant comparisons."""
+        if not isinstance(as_of, datetime):
+            raise ValueError("as_of must be a datetime.")
+        if as_of.tzinfo is None or as_of.utcoffset() is None:
+            raise ValueError("as_of must be timezone-aware.")
 
     async def create_memory(
         self,

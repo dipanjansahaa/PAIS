@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     CheckConstraint,
+    DateTime,
     ForeignKey,
     Index,
     String,
@@ -50,9 +52,7 @@ KNOWLEDGE_RELATIONSHIP_TYPES = (
 )
 
 _ENTITY_TYPE_SQL = ", ".join(f"'{value}'" for value in KNOWLEDGE_ENTITY_TYPES)
-_RELATIONSHIP_TYPE_SQL = ", ".join(
-    f"'{value}'" for value in KNOWLEDGE_RELATIONSHIP_TYPES
-)
+_RELATIONSHIP_TYPE_SQL = ", ".join(f"'{value}'" for value in KNOWLEDGE_RELATIONSHIP_TYPES)
 
 
 class KnowledgeRelationship(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -81,6 +81,10 @@ class KnowledgeRelationship(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint(
             "source_type != target_type OR source_id != target_id",
             name="ck_knowledge_relationships_no_self_reference",
+        ),
+        CheckConstraint(
+            "valid_until IS NULL OR valid_from IS NULL OR valid_until > valid_from",
+            name="ck_knowledge_relationships_validity_interval",
         ),
         UniqueConstraint(
             "user_id",
@@ -137,6 +141,16 @@ class KnowledgeRelationship(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     target_id: Mapped[uuid.UUID] = mapped_column(
         nullable=False,
+    )
+
+    valid_from: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    valid_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )
 
     user: Mapped[User] = relationship(

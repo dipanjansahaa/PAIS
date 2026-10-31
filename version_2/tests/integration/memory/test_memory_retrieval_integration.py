@@ -45,7 +45,7 @@ def create_memory(
 async def test_retrieval_enforces_user_lifecycle_and_validity(
     db_session,
 ) -> None:
-    """Return only the user's active memories valid at the requested time."""
+    """Current-state retrieval returns only active, currently valid user memories."""
     service = MemoryService()
     now = datetime.now(UTC)
     user = await create_user(db_session, label="primary")
@@ -90,7 +90,7 @@ async def test_retrieval_enforces_user_lifecycle_and_validity(
         db_session,
         user_id=user.id,
         query="prefer Python backend development",
-        as_of=now,
+        # as_of=now,
     )
 
     assert [memory.id for memory in results] == [valid_memory.id]
@@ -132,3 +132,71 @@ async def test_retrieval_preserves_memory_source_provenance(
     assert retrieved_source.source_kind == "manual"
     assert retrieved_source.source_reference == "evaluation-fixture"
     assert retrieved_source.evidence_text == "The user explicitly stated this preference."
+
+
+@pytest.mark.asyncio
+async def test_historical_retrieval_includes_superseded_and_expired_memories_when_valid(
+    db_session,
+) -> None:
+    """Historical valid-time lookup must not use current lifecycle status as a proxy."""
+    service = MemoryService()
+    now = datetime.now(UTC)
+    as_of = now - timedelta(days=2)
+    user = await create_user(db_session, label="historical")
+    other_user = await create_user(db_session, label="historical-other")
+
+    active_memory = create_memory(
+        user_id=user.id,
+        content="I prefer Python for current backend development.",
+        status="active",
+        valid_from=now - timedelta(days=3),
+        valid_until=now + timedelta(days=1),
+    )
+    superseded_memory = create_memory(
+        user_id=user.id,
+        content="I prefer Java for historical backend development.",
+        status="superseded",
+        valid_from=now - timedelta(days=4),
+        valid_until=now - timedelta(days=1),
+    )
+    expired_memory = create_memory(
+        user_id=user.id,
+        content="I prefer Kotlin for older backend development.",
+        status="expired",
+        valid_from=now - timedelta(days=4),
+        valid_until=now - timedelta(days=1),
+    )
+    not_yet_valid = create_memory(
+        user_id=user.id,
+        content="I prefer Rust for future backend development.",
+        status="active",
+        valid_from=now - timedelta(days=1),
+    )
+    foreign_memory = create_memory(
+        user_id=other_user.id,
+        content="I prefer Python for historical backend development.",
+        status="superseded",
+        valid_from=now - timedelta(days=4),
+        valid_until=now - timedelta(days=1),
+    )
+
+    db_session.add_all(
+        [active_memory, superseded_memory, expired_memory, not_yet_valid, foreign_memory]
+    )
+    await db_session.flush()
+
+    results = await service.retrieve_memories(
+        db_session,
+        user_id=user.id,
+        query="backend development",
+        as_of=as_of,
+    )
+
+    result_ids = {memory.id for memory in results}
+    assert result_ids == {
+        active_memory.id,
+        superseded_memory.id,
+        expired_memory.id,
+    }
+    assert foreign_memory.id not in result_ids
+    assert not_yet_valid.id not in result_ids

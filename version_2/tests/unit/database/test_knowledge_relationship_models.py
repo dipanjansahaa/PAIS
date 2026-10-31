@@ -25,6 +25,10 @@ def test_knowledge_relationship_table_definition() -> None:
     assert not table.c.target_id.nullable
     assert not table.c.created_at.nullable
     assert not table.c.updated_at.nullable
+    assert table.c.valid_from.nullable
+    assert table.c.valid_until.nullable
+    assert table.c.valid_from.type.timezone is True
+    assert table.c.valid_until.type.timezone is True
 
 
 def test_knowledge_relationship_supports_typed_directed_edges() -> None:
@@ -81,6 +85,7 @@ def test_relationship_constraints_and_indexes_are_defined() -> None:
     assert "ix_knowledge_relationships_source" in index_names
     assert "ix_knowledge_relationships_target" in index_names
     assert "ix_knowledge_relationships_type" in index_names
+    assert "ck_knowledge_relationships_validity_interval" in constraint_names
 
 
 def test_relationship_provenance_uses_composite_primary_key() -> None:

@@ -186,3 +186,19 @@ async def test_retrieve_memories_returns_empty_when_no_matches(
     )
 
     assert results == []
+
+
+@pytest.mark.asyncio
+async def test_retrieve_memories_rejects_naive_as_of(
+    service: MemoryService,
+) -> None:
+    session = AsyncMock()
+
+    with pytest.raises(ValueError, match="as_of must be timezone-aware"):
+        await service.retrieve_memories(
+            session,
+            user_id=uuid4(),
+            as_of=datetime(2026, 10, 31, 12, 0, 0),
+        )
+
+    session.scalars.assert_not_awaited()

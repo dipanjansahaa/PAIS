@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 
 from app.query.context import ContextSource
+from app.query.relationship_context import QueryRelationship
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,6 +28,9 @@ class QueryMemory:
     memory_id: str
     memory_type: str
     content: str
+    status: str
+    valid_from: datetime | None
+    valid_until: datetime | None
     confidence: float | None
     sources: tuple[QueryMemorySource, ...]
 
@@ -41,3 +46,4 @@ class QueryResult:
     latency_ms: float | None
     truncated: bool
     memories: tuple[QueryMemory, ...] = ()
+    relationships: tuple[QueryRelationship, ...] = ()

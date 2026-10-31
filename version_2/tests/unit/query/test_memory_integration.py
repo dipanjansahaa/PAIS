@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -55,6 +56,7 @@ class FakeMemoryService:
                 "user_id": user_id,
                 "query": query,
                 "limit": limit,
+                "as_of": as_of,
             }
         )
         return self.memories
@@ -101,6 +103,9 @@ def make_memory(
         id=uuid4(),
         memory_type=memory_type,
         content=content,
+        status="active",
+        valid_from=None,
+        valid_until=None,
         confidence=0.95,
         sources=sources or [],
     )
@@ -143,7 +148,9 @@ async def test_query_includes_relevant_memory_in_prompt():
 
     assert len(memory_service.calls) == 1
     assert memory_service.calls[0]["user_id"] == user_id
-    assert memory_service.calls[0]["query"] == "Which language do I prefer for backend development?"
+    assert memory_service.calls[0]["query"] == (
+        "Which language do I prefer for backend development?"
+    )
 
     assert len(llm_provider.calls) == 1
 
@@ -314,3 +321,51 @@ async def test_query_preserves_memory_provenance():
     assert source.chunk_id == str(chunk_id)
     assert source.source_reference == "architecture.md"
     assert source.evidence_text == "The user prefers Python."
+
+
+@pytest.mark.asyncio
+async def test_query_passes_as_of_to_memory_retrieval():
+    """Historical query timestamps are forwarded to memory retrieval."""
+    as_of = datetime(2025, 3, 1, 12, tzinfo=UTC)
+    memory_service = FakeMemoryService([make_memory()])
+    service = QueryService(
+        search_service=FakeSearchService(),
+        context_builder=ContextBuilder(),
+        llm_provider=FakeLLMProvider(),
+        memory_service=memory_service,
+    )
+
+    await service.query(
+        object(),
+        user_id=uuid4(),
+        query="Which language did I prefer?",
+        as_of=as_of,
+    )
+
+    assert memory_service.calls[0]["as_of"] == as_of
+
+
+@pytest.mark.asyncio
+async def test_query_marks_unknown_memory_validity_boundaries_in_prompt():
+    """A null validity boundary must be presented as unknown, not indefinite."""
+    memory = make_memory()
+    llm_provider = FakeLLMProvider()
+    service = QueryService(
+        search_service=FakeSearchService(),
+        context_builder=ContextBuilder(),
+        llm_provider=llm_provider,
+        memory_service=FakeMemoryService([memory]),
+    )
+
+    await service.query(
+        object(),
+        user_id=uuid4(),
+        query="What is my backend preference?",
+        as_of=datetime(2025, 3, 1, tzinfo=UTC),
+    )
+
+    prompt = llm_provider.calls[0]["messages"][1].content
+    assert "Current stored status: active" in prompt
+    assert "Valid from: unknown" in prompt
+    assert "Valid until: unknown" in prompt
+    assert "do not assume indefinite validity" in prompt

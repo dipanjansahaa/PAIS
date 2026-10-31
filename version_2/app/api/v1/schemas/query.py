@@ -2,9 +2,22 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+QueryEntityType = Literal[
+    "project",
+    "person",
+    "task",
+    "commitment",
+    "decision",
+    "risk",
+    "document",
+    "memory",
+]
 
 
 class QueryRequest(BaseModel):
@@ -16,6 +29,14 @@ class QueryRequest(BaseModel):
     project_id: UUID | None = None
     document_id: UUID | None = None
     source_type: str | None = None
+
+    # Explicit valid-time instant for historical retrieval. A timezone is
+    # required because a naive datetime does not identify an unambiguous instant.
+    as_of: datetime | None = None
+
+    # Graph context is opt-in and requires a concrete seed entity.
+    entity_type: QueryEntityType | None = None
+    entity_id: UUID | None = None
 
     temperature: float = Field(
         default=0.0,
@@ -34,6 +55,23 @@ class QueryRequest(BaseModel):
             raise ValueError("Query must not be empty.")
 
         return value
+
+    @field_validator("as_of")
+    @classmethod
+    def validate_as_of(cls, value: datetime | None) -> datetime | None:
+        """Require timezone-aware timestamps for historical instant queries."""
+
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+            raise ValueError("as_of must be timezone-aware.")
+        return value
+
+    @model_validator(mode="after")
+    def validate_entity_reference(self) -> QueryRequest:
+        """Require both parts of an explicit graph seed reference."""
+
+        if (self.entity_type is None) != (self.entity_id is None):
+            raise ValueError("entity_type and entity_id must be provided together.")
+        return self
 
 
 class QueryChunkResponse(BaseModel):
@@ -72,8 +110,38 @@ class QueryMemoryResponse(BaseModel):
     memory_id: UUID
     memory_type: str
     content: str
+    status: str
+    valid_from: datetime | None
+    valid_until: datetime | None
     confidence: float | None
     sources: list[QueryMemorySourceResponse]
+
+
+class QueryRelationshipSourceResponse(BaseModel):
+    """Document provenance supporting a knowledge relationship."""
+
+    citation_id: str
+    chunk_id: UUID
+    document_id: UUID
+    document_title: str
+    content: str
+
+
+class QueryRelationshipResponse(BaseModel):
+    """Knowledge relationship included as query evidence."""
+
+    citation_id: str
+    relationship_id: UUID
+    source_type: str
+    source_id: UUID
+    source_label: str
+    relationship_type: str
+    target_type: str
+    target_id: UUID
+    target_label: str
+    valid_from: datetime | None
+    valid_until: datetime | None
+    sources: list[QueryRelationshipSourceResponse]
 
 
 class QueryResponse(BaseModel):
@@ -83,6 +151,7 @@ class QueryResponse(BaseModel):
     answer: str
     sources: list[QuerySourceResponse]
     memories: list[QueryMemoryResponse] = Field(default_factory=list)
+    relationships: list[QueryRelationshipResponse] = Field(default_factory=list)
     model: str | None
     latency_ms: float | None
     truncated: bool

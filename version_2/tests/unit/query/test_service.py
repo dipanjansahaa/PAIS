@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -268,7 +269,8 @@ async def test_query_does_not_call_llm_without_retrieved_sources():
     )
 
     assert response.answer == (
-        "I don't have enough information in the available sources to answer this question."
+        "I don't have enough information in the available sources "
+        "to answer this question."
     )
 
     assert response.sources == ()
@@ -409,3 +411,156 @@ async def test_query_preserves_truncated_context_state():
     )
 
     assert response.truncated is True
+
+
+class FakeRelationshipContextBuilder:
+    """Fake relationship context builder for QueryService tests."""
+
+    def __init__(self, context):
+        self.context = context
+        self.calls = []
+
+    async def build(
+        self,
+        session,
+        *,
+        user_id,
+        entity_type,
+        entity_id,
+        limit=20,
+        as_of=None,
+    ):
+        self.calls.append(
+            {
+                "session": session,
+                "user_id": user_id,
+                "entity_type": entity_type,
+                "entity_id": entity_id,
+                "limit": limit,
+                "as_of": as_of,
+            }
+        )
+        return self.context
+
+
+@pytest.mark.asyncio
+async def test_query_includes_explicit_relationship_context_in_prompt():
+    """Explicit seed entity relationships are grounded query evidence."""
+    from app.query.relationship_context import QueryRelationship, RelationshipContext
+
+    relationship = QueryRelationship(
+        citation_id="R1",
+        relationship_id=str(uuid4()),
+        source_type="project",
+        source_id=str(uuid4()),
+        source_label="PAIS",
+        relationship_type="depends_on",
+        target_type="task",
+        target_id=str(uuid4()),
+        target_label="Implement retrieval",
+        valid_from=None,
+        valid_until=None,
+        sources=(),
+    )
+    relationship_context = RelationshipContext(
+        text='[R1] project "PAIS" --depends_on--> task "Implement retrieval"',
+        relationships=(relationship,),
+    )
+    relationship_builder = FakeRelationshipContextBuilder(relationship_context)
+    llm_provider = FakeLLMProvider(response=make_llm_response())
+    session = object()
+    user_id = uuid4()
+    entity_id = uuid4()
+
+    service = QueryService(
+        search_service=FakeSearchService(),
+        context_builder=ContextBuilder(),
+        llm_provider=llm_provider,
+        relationship_context_builder=relationship_builder,
+    )
+    result = await service.query(
+        session,
+        user_id=user_id,
+        query="What does PAIS depend on?",
+        entity_type="project",
+        entity_id=entity_id,
+    )
+
+    assert relationship_builder.calls == [
+        {
+            "session": session,
+            "user_id": user_id,
+            "entity_type": "project",
+            "entity_id": entity_id,
+            "limit": 20,
+            "as_of": None,
+        }
+    ]
+    prompt = llm_provider.calls[0]["messages"][1].content
+    assert "KNOWLEDGE RELATIONSHIPS:" in prompt
+    assert 'project "PAIS" --depends_on--> task "Implement retrieval"' in prompt
+    assert result.relationships == (relationship,)
+
+
+@pytest.mark.asyncio
+async def test_query_requires_entity_type_and_id_together():
+    """Graph retrieval must have an explicit, complete seed entity."""
+    service = QueryService(
+        search_service=FakeSearchService(),
+        context_builder=ContextBuilder(),
+        llm_provider=FakeLLMProvider(response=make_llm_response()),
+    )
+
+    with pytest.raises(ValueError, match="must be provided together"):
+        await service.query(
+            object(),
+            user_id=uuid4(),
+            query="What is connected to this project?",
+            entity_type="project",
+        )
+
+
+@pytest.mark.asyncio
+async def test_query_passes_as_of_to_relationship_context_builder():
+    """An explicit historical instant is passed to graph retrieval."""
+    from app.query.relationship_context import RelationshipContext
+
+    as_of = datetime(2025, 3, 1, 12, tzinfo=UTC)
+    builder = FakeRelationshipContextBuilder(
+        RelationshipContext(text="", relationships=())
+    )
+    service = QueryService(
+        search_service=FakeSearchService(),
+        context_builder=ContextBuilder(),
+        llm_provider=FakeLLMProvider(response=make_llm_response()),
+        relationship_context_builder=builder,
+    )
+
+    await service.query(
+        object(),
+        user_id=uuid4(),
+        query="Historical project relationships",
+        entity_type="project",
+        entity_id=uuid4(),
+        as_of=as_of,
+    )
+
+    assert builder.calls[0]["as_of"] == as_of
+
+
+@pytest.mark.asyncio
+async def test_query_rejects_timezone_naive_as_of():
+    """QueryService rejects naive timestamps even outside the API layer."""
+    service = QueryService(
+        search_service=FakeSearchService(),
+        context_builder=ContextBuilder(),
+        llm_provider=FakeLLMProvider(response=make_llm_response()),
+    )
+
+    with pytest.raises(ValueError, match="as_of must be a timezone-aware datetime"):
+        await service.query(
+            object(),
+            user_id=uuid4(),
+            query="Historical question",
+            as_of=datetime(2025, 3, 1, 12),
+        )
