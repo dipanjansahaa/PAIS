@@ -11,6 +11,7 @@ from tests.evaluation.memory_dataset import (
     MEMORY_EVALUATION_CASES,
     MEMORY_FIXTURES,
 )
+from tests.evaluation.quality_gates import assert_quality_gate
 
 pytestmark = pytest.mark.integration
 
@@ -59,6 +60,7 @@ async def test_memory_retrieval_evaluation(db_session) -> None:
     assert result.recall_at_k > 0.0
     assert result.mrr > 0.0
     assert result.ndcg_at_k > 0.0
+    assert_quality_gate("memory", result)
 
     print(
         "\nMemory retrieval evaluation"

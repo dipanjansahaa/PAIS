@@ -16,11 +16,13 @@ from app.retrieval.hybrid import HybridRetriever
 from app.retrieval.lexical import LexicalRetriever
 from app.retrieval.reranked import RerankedRetriever
 from app.retrieval.vector import VectorRetriever
+from tests.evaluation.quality_gates import assert_quality_gate
 from tests.evaluation.retrieval_cases import build_retrieval_cases
 from tests.evaluation.retrieval_dataset import EVALUATION_DOCUMENTS
 
 # DIAGNOSTIC_MODE = True
 DIAGNOSTIC_MODE = False
+
 
 @pytest.fixture
 def evaluation_embedding_provider():
@@ -52,9 +54,7 @@ def evaluation_hybrid_retriever(evaluation_embedding_provider):
 
 @pytest.fixture
 def evaluation_reranking_service():
-    return RerankingService(
-        reranker=LocalCrossEncoderReranker()
-    )
+    return RerankingService(reranker=LocalCrossEncoderReranker())
 
 
 @pytest.fixture
@@ -84,11 +84,7 @@ async def create_evaluation_documents(
     await db_session.flush()
 
     for item in EVALUATION_DOCUMENTS:
-        document_identifier = (
-            item["title"]
-            .lower()
-            .replace(" ", "-")
-        )
+        document_identifier = item["title"].lower().replace(" ", "-")
 
         document = Document(
             user_id=user.id,
@@ -102,9 +98,7 @@ async def create_evaluation_documents(
         db_session.add(document)
         await db_session.flush()
 
-        embeddings = await embedding_provider.embed_documents(
-            [item["content"]]
-        )
+        embeddings = await embedding_provider.embed_documents([item["content"]])
 
         chunk = DocumentChunk(
             document_id=document.id,
@@ -136,21 +130,11 @@ def print_evaluation_results(
     print("Evaluation Cases = 15")
     print(f"K = {k}")
     print()
-    print(
-        f"{'Retriever':<30}"
-        f"{'Recall@5':>12}"
-        f"{'MRR':>12}"
-        f"{'NDCG@5':>12}"
-    )
+    print(f"{'Retriever':<30}{'Recall@5':>12}{'MRR':>12}{'NDCG@5':>12}")
     print("-" * 66)
 
     for name, result in results.items():
-        print(
-            f"{name:<30}"
-            f"{result.recall_at_k:>12.4f}"
-            f"{result.mrr:>12.4f}"
-            f"{result.ndcg_at_k:>12.4f}"
-        )
+        print(f"{name:<30}{result.recall_at_k:>12.4f}{result.mrr:>12.4f}{result.ndcg_at_k:>12.4f}")
 
 
 @pytest.mark.asyncio
@@ -173,22 +157,14 @@ async def test_retrieval_benchmark_comparison(
         meeting_decision_chunk_id=chunks_by_case["meeting_decision"].id,
         authentication_chunk_id=chunks_by_case["authentication"].id,
         error_handling_chunk_id=chunks_by_case["error_handling"].id,
-        background_processing_chunk_id=chunks_by_case[
-            "background_processing"
-        ].id,
+        background_processing_chunk_id=chunks_by_case["background_processing"].id,
         chunking_chunk_id=chunks_by_case["chunking"].id,
         semantic_search_chunk_id=chunks_by_case["semantic_search"].id,
         lexical_search_chunk_id=chunks_by_case["lexical_search"].id,
-        hybrid_retrieval_chunk_id=chunks_by_case[
-            "hybrid_retrieval"
-        ].id,
-        retrieval_evaluation_chunk_id=chunks_by_case[
-            "retrieval_evaluation"
-        ].id,
+        hybrid_retrieval_chunk_id=chunks_by_case["hybrid_retrieval"].id,
+        retrieval_evaluation_chunk_id=chunks_by_case["retrieval_evaluation"].id,
         readiness_chunk_id=chunks_by_case["readiness"].id,
-        connection_pool_chunk_id=chunks_by_case[
-            "connection_pool"
-        ].id,
+        connection_pool_chunk_id=chunks_by_case["connection_pool"].id,
         observability_chunk_id=chunks_by_case["observability"].id,
         configuration_chunk_id=chunks_by_case["configuration"].id,
     )
@@ -273,32 +249,19 @@ async def test_retrieval_benchmark_comparison(
                 )
 
                 if matching_result is not None:
-                    print(
-                        f"  - {matching_result.content}"
-                        f" [relevance={relevance_score}]"
-                    )
+                    print(f"  - {matching_result.content} [relevance={relevance_score}]")
                 else:
-                    print(
-                        f"  - chunk_id={relevant_chunk_id}"
-                        f" [relevance={relevance_score}]"
-                    )
+                    print(f"  - chunk_id={relevant_chunk_id} [relevance={relevance_score}]")
 
             print()
             print("Top 10 Hybrid + RRF Candidates:")
             print("-" * 100)
 
             for rank, result in enumerate(hybrid_candidates[:10], start=1):
-                relevant_marker = (
-                    " <-- RELEVANT"
-                    if result.chunk_id in case.relevance
-                    else ""
-                )
+                relevant_marker = " <-- RELEVANT" if result.chunk_id in case.relevance else ""
 
                 print(
-                    f"{rank:>2}. "
-                    f"score={result.similarity:.6f} | "
-                    f"{result.content}"
-                    f"{relevant_marker}"
+                    f"{rank:>2}. score={result.similarity:.6f} | {result.content}{relevant_marker}"
                 )
 
             print()
@@ -306,17 +269,10 @@ async def test_retrieval_benchmark_comparison(
             print("-" * 100)
 
             for rank, result in enumerate(reranked_results, start=1):
-                relevant_marker = (
-                    " <-- RELEVANT"
-                    if result.chunk_id in case.relevance
-                    else ""
-                )
+                relevant_marker = " <-- RELEVANT" if result.chunk_id in case.relevance else ""
 
                 print(
-                    f"{rank:>2}. "
-                    f"score={result.similarity:.6f} | "
-                    f"{result.content}"
-                    f"{relevant_marker}"
+                    f"{rank:>2}. score={result.similarity:.6f} | {result.content}{relevant_marker}"
                 )
 
     results = {
@@ -337,3 +293,13 @@ async def test_retrieval_benchmark_comparison(
         assert 0.0 <= result.recall_at_k <= 1.0
         assert 0.0 <= result.mrr <= 1.0
         assert 0.0 <= result.ndcg_at_k <= 1.0
+
+    # Baselines are measured on this fixed 15-case dataset. The allowed
+    # absolute regression accounts for small environment/model variation.
+    for baseline_name, result in (
+        ("vector", vector_result),
+        ("lexical", lexical_result),
+        ("hybrid_rrf", hybrid_result),
+        ("hybrid_reranked", reranked_result),
+    ):
+        assert_quality_gate(baseline_name, result)
