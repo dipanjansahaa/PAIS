@@ -105,9 +105,7 @@ class RelationshipService:
                 target_type=target_type,
                 target_id=target_id,
             )
-            .on_conflict_do_nothing(
-                constraint="uq_knowledge_relationships_directed_edge"
-            )
+            .on_conflict_do_nothing(constraint="uq_knowledge_relationships_directed_edge")
         )
 
         # Query the row whether this request inserted it or lost a concurrent
@@ -124,9 +122,7 @@ class RelationshipService:
         )
         if persisted is None:
             # Defensive: a successful insert or conflict should leave this row.
-            raise RuntimeError(
-                "Relationship insert completed without a persisted relationship."
-            )
+            raise RuntimeError("Relationship insert completed without a persisted relationship.")
         return persisted
 
     async def get_relationship(
@@ -230,9 +226,7 @@ class RelationshipService:
         )
         valid_chunk_ids = set(valid_result.all())
         if set(unique_chunk_ids) - valid_chunk_ids:
-            raise ValueError(
-                "One or more source chunks do not belong to the user."
-            )
+            raise ValueError("One or more source chunks do not belong to the user.")
 
         # The composite primary key prevents duplicate provenance rows. Use
         # ON CONFLICT as well so concurrent requests attaching the same chunk
@@ -262,9 +256,7 @@ class RelationshipService:
                 KnowledgeRelationshipSource.chunk_id.in_(unique_chunk_ids),
             )
         )
-        persisted_by_chunk = {
-            source.chunk_id: source for source in persisted_result.all()
-        }
+        persisted_by_chunk = {source.chunk_id: source for source in persisted_result.all()}
         # If the database did not return every requested row, fail loudly
         # rather than silently returning incomplete provenance.
         if set(persisted_by_chunk) != set(unique_chunk_ids):
