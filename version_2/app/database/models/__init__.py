@@ -10,6 +10,12 @@ from app.database.models.commitment import Commitment, CommitmentSource
 from app.database.models.decision import Decision, DecisionSource
 from app.database.models.document import Document
 from app.database.models.document_chunk import DocumentChunk
+from app.database.models.knowledge_relationship import (
+    KNOWLEDGE_ENTITY_TYPES,
+    KNOWLEDGE_RELATIONSHIP_TYPES,
+    KnowledgeRelationship,
+    KnowledgeRelationshipSource,
+)
 from app.database.models.memory import Memory, MemorySource
 from app.database.models.model_run import ModelRun
 from app.database.models.person import Person, PersonSource
@@ -37,4 +43,8 @@ __all__ = [
     "Task",
     "TaskSource",
     "User",
+    "KnowledgeRelationship",
+    "KnowledgeRelationshipSource",
+    "KNOWLEDGE_ENTITY_TYPES",
+    "KNOWLEDGE_RELATIONSHIP_TYPES",
 ]

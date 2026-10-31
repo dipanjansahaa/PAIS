@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from app.database.models.commitment import Commitment
     from app.database.models.decision import Decision
     from app.database.models.document import Document
+    from app.database.models.knowledge_relationship import KnowledgeRelationship
     from app.database.models.memory import Memory
     from app.database.models.person import Person
     from app.database.models.project import Project
@@ -95,6 +96,13 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     memories: Mapped[list[Memory]] = relationship(
         "Memory",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    knowledge_relationships: Mapped[list[KnowledgeRelationship]] = relationship(
+        "KnowledgeRelationship",
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
